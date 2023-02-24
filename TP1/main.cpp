@@ -8,12 +8,21 @@
 
 using namespace std;
 
-const int Fe = 100;
+#define screenWidth 1280
+#define screenHeight 720
+
+#define Fe 100
+#define H (1.0 / Fe)
+#define k (0.865086 * pow(Fe, 2.0))
+#define z (0.08 * Fe)
+#define H (1.0 / Fe)
+#define NBM 12
+#define NBL (NBM - 1)
 
 class PMat
 {
 public:
-    double m = 1.0;
+    double m = 15.0;
     double pos = 0.0;
     double vit = 0.0;
     double frc = 0.0;
@@ -38,9 +47,7 @@ public:
 class Link
 {
 public:
-    double k = 0.865086 * pow(Fe, 2.0);
     double l0 = 0.0;
-    double z = 0.08 * Fe;
     PMat *M1, *M2;
     void setup()
     {
@@ -56,7 +63,7 @@ public:
     }
     void setup_frein()
     {
-        double f = -z * (M2->vit - M1->vit);
+        double f = z * (M2->vit - M1->vit);
         M1->frc += f;
         M2->frc -= f;
     }
@@ -64,15 +71,7 @@ public:
 
 int main()
 {
-
-    const int screenWidth = 1280;
-    const int screenHeight = 720;
-
     int FPS = 60;
-
-    const double H = 1.0 / Fe;
-    const int NBM = 12;
-    const int NBL = NBM - 1;
 
     PMat *tabM = new PMat[NBM];
     Link *tabL = new Link[NBL];
@@ -105,6 +104,8 @@ int main()
     M->y = screenHeight / 2.0;
     M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED));
 
+    tabM[1].frc = 1000.0;
+
     M = tabM;
     Link *L = tabL;
 
@@ -114,9 +115,6 @@ int main()
         L++;
         M++;
     }
-
-    tabM[0].pos = 50.0;
-    tabM[NBM - 1].pos = 50.0;
 
     while (WindowShouldClose() == false)
     {
@@ -131,9 +129,18 @@ int main()
 
         for (int i = 0; i < NBL; i++)
         {
+            L->setup_frein();
+            L++;
+        }
+
+        L = tabL;
+
+        for (int i = 0; i < NBL; i++)
+        {
             L->setup();
             L++;
         }
+
         PMat *M = tabM;
 
         for (int i = 0; i < NBM; i++)
@@ -143,8 +150,8 @@ int main()
             else
                 M->setup(H);
 
-            // if (i < NBM - 1)
-            //     DrawLineEx(Vector2{(float)M->x, (float)M->y}, Vector2{(float)(M + 1)->x, (float)(M + 1)->y}, 5.0, GREEN);
+            if (i < NBM - 1)
+                DrawLineBezier(Vector2{(float)M->x, (float)M->y}, Vector2{(float)(M + 1)->x, (float)(M + 1)->y}, 3.0, GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
             DrawCircle(M->x, M->y, 10, M->color);
             M++;
         }
