@@ -17,8 +17,10 @@ using namespace std;
 #define z (0.08 * Fe)
 #define NBM 13
 #define NBL (NBM - 1)
-#define gravity 0
 #define m 15
+
+bool applyGravity = false;
+int gravity = 0;
 
 class PMat
 {
@@ -82,8 +84,6 @@ void modeleur(PMat *tabM, Link *tabL)
 
     for (int i = 1; i < NBM - 1; i++)
     {
-        // if (i == NBM / 2)
-        //     M->frc = -9800000;
         M->pos = 0.0;
         M->x = 100.0 + i * (screenWidth - 200.0) / (NBM - 1.0);
         M->y = screenHeight / 2.0;
@@ -131,7 +131,7 @@ void moteur_phyisique(PMat *tabM, Link *tabL)
     for (int i = 0; i < NBM; i++)
     {
         if (!M->fixed)
-            M->frc += gravity;
+            M->frc += gravity * applyGravity;
 
         M++;
     }
@@ -150,14 +150,12 @@ void moteur_phyisique(PMat *tabM, Link *tabL)
 
 int main()
 {
-    int FPS = 60;
-
     PMat *tabM = new PMat[NBM];
     Link *tabL = new Link[NBL];
 
     InitWindow(screenWidth, screenHeight, "TP1");
     GuiLoadStyleCyber();
-    SetTargetFPS(FPS);
+    SetTargetFPS(30);
 
     modeleur(tabM, tabL);
 
@@ -167,7 +165,7 @@ int main()
         {
             PMat *M = tabM;
 
-            for (int i = 1; i < NBM - 1; i++)
+            for (int i = 1; i < NBM; i++)
             {
                 Vector2 mV{(float)M->x, (float)M->y};
                 if (abs(Vector2Distance(GetMousePosition(), mV)) < 10.0)
@@ -193,12 +191,11 @@ int main()
             M++;
         }
 
-        FPS = GuiSliderBar((Rectangle){100, screenHeight - 50, screenWidth - 200, 30}, "FPS", "", FPS, 0, 120);
-        SetTargetFPS(FPS);
+        applyGravity = GuiToggle((Rectangle){20, 50, 100, 30}, "GRAVITY", applyGravity);
+        GuiValueBox((Rectangle){130, 50, 100, 30}, "", &gravity, 0, 1000000000, applyGravity);
 
         EndDrawing();
     }
-
     CloseWindow();
     delete[] tabM;
     delete[] tabL;
