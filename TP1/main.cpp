@@ -1,5 +1,6 @@
 #include <iostream>
 #include <raylib.h>
+#include <raymath.h>
 
 #define RAYGUI_IMPLEMENTATION
 #include <raygui.h>
@@ -14,10 +15,10 @@ using namespace std;
 #define H (1.0 / Fe)
 #define k (0.865086 * pow(Fe, 2.0))
 #define z (0.08 * Fe)
-#define NBM 12
+#define NBM 13
 #define NBL (NBM - 1)
-#define gravity 98000
-#define m 10
+#define gravity 0
+#define m 15
 
 class PMat
 {
@@ -81,6 +82,8 @@ void modeleur(PMat *tabM, Link *tabL)
 
     for (int i = 1; i < NBM - 1; i++)
     {
+        // if (i == NBM / 2)
+        //     M->frc = -9800000;
         M->pos = 0.0;
         M->x = 100.0 + i * (screenWidth - 200.0) / (NBM - 1.0);
         M->y = screenHeight / 2.0;
@@ -160,6 +163,21 @@ int main()
 
     while (WindowShouldClose() == false)
     {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        {
+            PMat *M = tabM;
+
+            for (int i = 1; i < NBM - 1; i++)
+            {
+                Vector2 mV{(float)M->x, (float)M->y};
+                if (abs(Vector2Distance(GetMousePosition(), mV)) < 10.0)
+                {
+                    M->frc += 1000000;
+                }
+                M++;
+            }
+        }
+
         moteur_phyisique(tabM, tabL);
         BeginDrawing();
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
