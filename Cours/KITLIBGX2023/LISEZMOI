@@ -1,0 +1,49 @@
+
+==================================================================================
+Octobre 2022
+==================================================================================
+
+E.Incerti - incerti@univ-eiffel.fr
+Universite Gustave Eiffel
+
+==================================================================================
+
+Installation de la bibliothèque graphique <g2x/g3x> , basée sur OpenGl (FreeGlut3)
+
+==================================================================================
+
+CONTENU
+- ce fichier README
+
+- un script d'installation install.sh
+
+- un repertoire libg2x.6d/
+  Ce repertoire contient la lib <g2x> version 6e :
+    - libg2x.6d.64b.[so/a]     : lib. dynamique/statique 64 bits - gcc / clang
+    - libg2x.6d.64b++.[so/a]   : lib. dynamique/statique 64 bits - g++ / clang++
+    - un repertoire include/  contient les fichiers d'en-tête de la lib.
+    - un repertoire src/      contient les fichiers source de la lib.
+    - un repertoire work/     des exemples simples d'utilisation
+      - un repertoire include/ (vide)
+      - un repertoire src/ quelques codes d'exemple
+      - un Makefile
+
+- un repertoire libg3x.6d/
+  Ce repertoire contient la lib <g3x> version 6e :
+    - libg3x.6d.64b.[so/a]     : lib. dynamique/statique 64 bits - gcc / clang
+    - libg3x.6d.64b++.[so/a]   : lib. dynamique/statique 64 bits - g++ / clang++
+    - un repertoire include/  contient les fichiers d'en-tête de la lib.
+    - un repertoire src/      contient les fichiers source de la lib.
+    - un repertoire work/     des exemples simples d'utilisation
+      - un repertoire include/ (vide)
+      - un repertoire src/ quelques codes d'exemple
+      - un Makefile
+
+==================================================================================
+
+UTILISATION
+- dans le repertoire courant, lancer le script d'installation : ./install.sh
+  ATTENTION : Ce script va modifier (ou creer) le fichier de configuration ~/.bashrc
+    * Des variables d'environnement sont crees pour la compilation.
+      Ces variables sont definies par rapport au REPERTOIRE COURANT D'INSTALLATION
+      => en cas de deplacement du repertoire, il faut recommencer l'install.
