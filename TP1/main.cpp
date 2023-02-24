@@ -1,6 +1,5 @@
 #include <iostream>
 #include <raylib.h>
-#include <raymath.h>
 
 #define RAYGUI_IMPLEMENTATION
 #include <raygui.h>
@@ -15,14 +14,14 @@ using namespace std;
 #define H (1.0 / Fe)
 #define k (0.865086 * pow(Fe, 2.0))
 #define z (0.08 * Fe)
-#define H (1.0 / Fe)
 #define NBM 12
 #define NBL (NBM - 1)
+#define gravity 98000
+#define m 10
 
 class PMat
 {
 public:
-    double m = 15.0;
     double pos = 0.0;
     double vit = 0.0;
     double frc = 0.0;
@@ -69,17 +68,8 @@ public:
     }
 };
 
-int main()
+void modeleur(PMat *tabM, Link *tabL)
 {
-    int FPS = 60;
-
-    PMat *tabM = new PMat[NBM];
-    Link *tabL = new Link[NBL];
-
-    InitWindow(screenWidth, screenHeight, "TP1");
-    GuiLoadStyleCyber();
-    SetTargetFPS(FPS);
-
     PMat *M = tabM;
 
     M->pos = 0.0;
@@ -104,8 +94,6 @@ int main()
     M->y = screenHeight / 2.0;
     M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED));
 
-    tabM[1].frc = 1000.0;
-
     M = tabM;
     Link *L = tabL;
 
@@ -115,46 +103,80 @@ int main()
         L++;
         M++;
     }
+}
+
+void moteur_phyisique(PMat *tabM, Link *tabL)
+{
+    Link *L = tabL;
+
+    for (int i = 0; i < NBL; i++)
+    {
+        L->setup_frein();
+        L++;
+    }
+
+    L = tabL;
+
+    for (int i = 0; i < NBL; i++)
+    {
+        L->setup();
+        L++;
+    }
+
+    PMat *M = tabM;
+
+    for (int i = 0; i < NBM; i++)
+    {
+        if (!M->fixed)
+            M->frc += gravity;
+
+        M++;
+    }
+
+    M = tabM;
+
+    for (int i = 0; i < NBM; i++)
+    {
+        if (M->fixed)
+            M->setup_pfixe();
+        else
+            M->setup(H);
+        M++;
+    }
+}
+
+int main()
+{
+    int FPS = 60;
+
+    PMat *tabM = new PMat[NBM];
+    Link *tabL = new Link[NBL];
+
+    InitWindow(screenWidth, screenHeight, "TP1");
+    GuiLoadStyleCyber();
+    SetTargetFPS(FPS);
+
+    modeleur(tabM, tabL);
 
     while (WindowShouldClose() == false)
     {
+        moteur_phyisique(tabM, tabL);
         BeginDrawing();
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
         GuiPanel((Rectangle){0, 0, screenWidth, screenHeight}, "WELCOME TO THE SIMULATION");
-
-        FPS = GuiSliderBar((Rectangle){100, screenHeight - 50, screenWidth - 200, 30}, "FPS", "", FPS, 0, 120);
-        SetTargetFPS(FPS);
-
-        Link *L = tabL;
-
-        for (int i = 0; i < NBL; i++)
-        {
-            L->setup_frein();
-            L++;
-        }
-
-        L = tabL;
-
-        for (int i = 0; i < NBL; i++)
-        {
-            L->setup();
-            L++;
-        }
 
         PMat *M = tabM;
 
         for (int i = 0; i < NBM; i++)
         {
-            if (M->fixed)
-                M->setup_pfixe();
-            else
-                M->setup(H);
-
             if (i < NBM - 1)
-                DrawLineBezier(Vector2{(float)M->x, (float)M->y}, Vector2{(float)(M + 1)->x, (float)(M + 1)->y}, 3.0, GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
+                DrawLineEx(Vector2{(float)M->x, (float)M->y}, Vector2{(float)(M + 1)->x, (float)(M + 1)->y}, 3.0, GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
             DrawCircle(M->x, M->y, 10, M->color);
             M++;
         }
+
+        FPS = GuiSliderBar((Rectangle){100, screenHeight - 50, screenWidth - 200, 30}, "FPS", "", FPS, 0, 120);
+        SetTargetFPS(FPS);
 
         EndDrawing();
     }
