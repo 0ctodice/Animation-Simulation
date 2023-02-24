@@ -18,9 +18,12 @@ using namespace std;
 #define NBM 13
 #define NBL (NBM - 1)
 #define m 15
-
-bool applyGravity = false;
 int gravity = 0;
+int mouseForce = 0;
+
+bool drawGUI = true;
+bool gravityValueFocused = false;
+bool mouseForceValueFocused = false;
 
 class PMat
 {
@@ -71,7 +74,7 @@ public:
     }
 };
 
-void modeleur(PMat *tabM, Link *tabL)
+void Modeleur(PMat *tabM, Link *tabL)
 {
     PMat *M = tabM;
 
@@ -108,7 +111,7 @@ void modeleur(PMat *tabM, Link *tabL)
     }
 }
 
-void moteur_phyisique(PMat *tabM, Link *tabL)
+void MoteurPhyisique(PMat *tabM, Link *tabL)
 {
     Link *L = tabL;
 
@@ -130,9 +133,7 @@ void moteur_phyisique(PMat *tabM, Link *tabL)
 
     for (int i = 0; i < NBM; i++)
     {
-        if (!M->fixed)
-            M->frc += gravity * applyGravity;
-
+        M->frc += !M->fixed ? gravity : 0;
         M++;
     }
 
@@ -140,12 +141,24 @@ void moteur_phyisique(PMat *tabM, Link *tabL)
 
     for (int i = 0; i < NBM; i++)
     {
-        if (M->fixed)
-            M->setup_pfixe();
-        else
-            M->setup(H);
+        M->fixed ? M->setup_pfixe() : M->setup(H);
         M++;
     }
+}
+
+void DrawGUI()
+{
+    Rectangle gravityValueBox{screenWidth - 130, 50, 100, 30};
+    Rectangle mouseForceValueBox{screenWidth - 130, 90, 100, 30};
+
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
+        gravityValueFocused = CheckCollisionPointRec(GetMousePosition(), gravityValueBox) ? !gravityValueFocused : false;
+        mouseForceValueFocused = CheckCollisionPointRec(GetMousePosition(), mouseForceValueBox) ? !mouseForceValueFocused : false;
+    }
+
+    GuiValueBox(gravityValueBox, "GRAVITY", &gravity, 0, 100000, gravityValueFocused);
+    GuiValueBox(mouseForceValueBox, "FORCE", &mouseForce, 0, 1000000000, mouseForceValueFocused);
 }
 
 int main()
@@ -157,7 +170,7 @@ int main()
     GuiLoadStyleCyber();
     SetTargetFPS(30);
 
-    modeleur(tabM, tabL);
+    Modeleur(tabM, tabL);
 
     while (WindowShouldClose() == false)
     {
@@ -168,15 +181,15 @@ int main()
             for (int i = 1; i < NBM; i++)
             {
                 Vector2 mV{(float)M->x, (float)M->y};
-                if (abs(Vector2Distance(GetMousePosition(), mV)) < 10.0)
+                if (abs(Vector2Distance(GetMousePosition(), mV)) < 15.0)
                 {
-                    M->frc += 1000000;
+                    M->frc += mouseForce;
                 }
                 M++;
             }
         }
 
-        moteur_phyisique(tabM, tabL);
+        MoteurPhyisique(tabM, tabL);
         BeginDrawing();
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
         GuiPanel((Rectangle){0, 0, screenWidth, screenHeight}, "WELCOME TO THE SIMULATION");
@@ -190,9 +203,10 @@ int main()
             DrawCircle(M->x, M->y, 10, M->color);
             M++;
         }
+        drawGUI = IsKeyPressed(KEY_G) ? !drawGUI : drawGUI;
 
-        applyGravity = GuiToggle((Rectangle){20, 50, 100, 30}, "GRAVITY", applyGravity);
-        GuiValueBox((Rectangle){130, 50, 100, 30}, "", &gravity, 0, 1000000000, applyGravity);
+        if (drawGUI)
+            DrawGUI();
 
         EndDrawing();
     }
