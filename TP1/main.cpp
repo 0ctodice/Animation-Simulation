@@ -4,26 +4,25 @@
 
 #define RAYGUI_IMPLEMENTATION
 #include <raygui.h>
-#include <styles/cyber/cyber.h>
+#include <../styles/cyber/cyber.h>
 
 using namespace std;
 
 #define screenWidth 1280
 #define screenHeight 720
 
-#define Fe 100
-#define H (1.0 / Fe)
-#define k (0.865086 * sqrt(Fe))
-#define z (0.08 * Fe)
 #define NBM 13
 #define NBL (NBM - 1)
+
 #define m 1
-int gravity = 0;
-int mouseForce = 0;
+
+float k = 0.1;
+float z = 0.01;
+float Fe = 100;
+float gravity = 0;
+float mouseForce = 0;
 
 bool drawGUI = true;
-bool gravityValueFocused = false;
-bool mouseForceValueFocused = false;
 
 class PMat
 {
@@ -32,8 +31,15 @@ public:
     double vit = 0.0;
     double frc = 0.0;
     double x, y = 0.0;
+    double initX, initY = 0.0;
     Color color = BLACK;
     bool fixed = true;
+
+    void initXY()
+    {
+        initX = x;
+        initY = y;
+    }
 
     void setup(double h)
     {
@@ -47,6 +53,15 @@ public:
     {
         frc = 0.0;
     }
+
+    void reset()
+    {
+        pos = 0.0;
+        vit = 0.0;
+        frc = 0.0;
+        x = initX;
+        y = initY;
+    }
 };
 
 class Link
@@ -54,23 +69,32 @@ class Link
 public:
     double l0 = 0.0;
     PMat *M1, *M2;
+
+    void reset()
+    {
+        l0 = M2->pos - M1->pos;
+    }
+
     void connect(PMat *_M1, PMat *_M2)
     {
         M1 = _M1;
         M2 = _M2;
         l0 = M2->pos - M1->pos;
     }
-    void setup()
+
+    void setup_ressort_frein()
     {
-        double f = k * ((M2->pos - M1->pos) - l0);
+        double f = Fe * Fe * (k / m) * ((M2->pos - M1->pos) - l0) + Fe * (z / m) * (M2->vit - M1->vit);
         M1->frc += f;
         M2->frc -= f;
     }
-    void setup_frein()
+
+    void apply_gravity()
     {
-        double f = z * (M2->vit - M1->vit);
-        M1->frc += f;
-        M2->frc -= f;
+        for (PMat *M = M1; M <= M2; M++)
+        {
+            M->frc += gravity * 1000;
+        }
     }
 };
 
@@ -82,6 +106,7 @@ void Modeleur(PMat *tabM, Link *tabL)
     M->x = 100.0;
     M->y = screenHeight / 2.0;
     M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED));
+    M->initXY();
 
     M++;
 
@@ -92,6 +117,7 @@ void Modeleur(PMat *tabM, Link *tabL)
         M->y = screenHeight / 2.0;
         M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_PRESSED));
         M->fixed = false;
+        M->initXY();
         M++;
     }
 
@@ -99,6 +125,7 @@ void Modeleur(PMat *tabM, Link *tabL)
     M->x = screenWidth - 100.0;
     M->y = screenHeight / 2.0;
     M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED));
+    M->initXY();
 
     M = tabM;
     Link *L = tabL;
@@ -111,21 +138,14 @@ void Modeleur(PMat *tabM, Link *tabL)
     }
 }
 
-void MoteurPhyisique(PMat *tabM, Link *tabL)
+void MoteurRessortFrein(PMat *tabM, Link *tabL)
 {
     Link *L = tabL;
 
     for (int i = 0; i < NBL; i++)
     {
-        L->setup_frein();
-        L++;
-    }
-
-    L = tabL;
-
-    for (int i = 0; i < NBL; i++)
-    {
-        L->setup();
+        L->setup_ressort_frein();
+        L->apply_gravity();
         L++;
     }
 
@@ -133,32 +153,41 @@ void MoteurPhyisique(PMat *tabM, Link *tabL)
 
     for (int i = 0; i < NBM; i++)
     {
-        M->frc += !M->fixed ? gravity : 0;
-        M++;
-    }
-
-    M = tabM;
-
-    for (int i = 0; i < NBM; i++)
-    {
-        M->fixed ? M->setup_pfixe() : M->setup(H);
+        M->fixed ? M->setup_pfixe() : M->setup(1.0 / Fe);
         M++;
     }
 }
 
-void DrawGUI()
+void DrawGUI(PMat *tabM, Link *tabL)
 {
-    Rectangle gravityValueBox{screenWidth - 130, 50, 100, 30};
-    Rectangle mouseForceValueBox{screenWidth - 130, 90, 100, 30};
-
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    gravity = GuiSliderBar((Rectangle){screenWidth - 150, 50, 100, 30}, "GRAVITY", std::to_string(gravity).substr(0, std::to_string(gravity).find(".") + 3).c_str(), gravity, 0, 1);
+    mouseForce = GuiSliderBar((Rectangle){screenWidth - 150, 90, 100, 30}, "FORCE", std::to_string(mouseForce).substr(0, std::to_string(mouseForce).find(".") + 3).c_str(), mouseForce, 0, 1);
+    k = GuiSliderBar((Rectangle){screenWidth - 150, 130, 100, 30}, "K", std::to_string(k).substr(0, std::to_string(k).find(".") + 3).c_str(), k, 0, 1);
+    z = GuiSliderBar((Rectangle){screenWidth - 150, 170, 100, 30}, "Z", std::to_string(z).substr(0, std::to_string(z).find(".") + 3).c_str(), z, 0, 1);
+    Fe = GuiSliderBar((Rectangle){screenWidth - 150, 210, 100, 30}, "Fe", std::to_string(Fe).substr(0, std::to_string(Fe).find(".")).c_str(), Fe, 0, 1000);
+    const char *FPS = ("FPS: " + std::to_string(GetFPS())).c_str();
+    GuiLabel((Rectangle){screenWidth - 130, 250, 100, 30}, FPS);
+    if (GuiButton((Rectangle){screenWidth - 150, 280, 100, 30}, "RESET"))
     {
-        gravityValueFocused = CheckCollisionPointRec(GetMousePosition(), gravityValueBox) ? !gravityValueFocused : false;
-        mouseForceValueFocused = CheckCollisionPointRec(GetMousePosition(), mouseForceValueBox) ? !mouseForceValueFocused : false;
-    }
+        gravity = 0;
+        mouseForce = 0;
+        k = 0.1;
+        z = 0.01;
+        Fe = 100;
+        PMat *M = tabM;
+        for (int i = 0; i < NBM; i++)
+        {
+            M->reset();
+            M++;
+        }
 
-    GuiValueBox(gravityValueBox, "GRAVITY", &gravity, 0, 100000, gravityValueFocused);
-    GuiValueBox(mouseForceValueBox, "FORCE", &mouseForce, 0, 1000000000, mouseForceValueFocused);
+        Link *L = tabL;
+        for (int i = 0; i < NBL; i++)
+        {
+            L->reset();
+            L++;
+        }
+    }
 }
 
 int main()
@@ -168,7 +197,7 @@ int main()
 
     InitWindow(screenWidth, screenHeight, "TP1");
     GuiLoadStyleCyber();
-    SetTargetFPS(30);
+    SetTargetFPS(60);
 
     Modeleur(tabM, tabL);
 
@@ -183,13 +212,13 @@ int main()
                 Vector2 mV{(float)M->x, (float)M->y};
                 if (abs(Vector2Distance(GetMousePosition(), mV)) < 15.0)
                 {
-                    M->frc += mouseForce;
+                    M->frc += mouseForce * 1000000;
                 }
                 M++;
             }
         }
 
-        MoteurPhyisique(tabM, tabL);
+        MoteurRessortFrein(tabM, tabL);
         BeginDrawing();
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
         GuiPanel((Rectangle){0, 0, screenWidth, screenHeight}, "WELCOME TO THE SIMULATION");
@@ -206,7 +235,7 @@ int main()
         drawGUI = IsKeyPressed(KEY_G) ? !drawGUI : drawGUI;
 
         if (drawGUI)
-            DrawGUI();
+            DrawGUI(tabM, tabL);
 
         EndDrawing();
     }
