@@ -13,11 +13,11 @@ using namespace std;
 
 #define Fe 100
 #define H (1.0 / Fe)
-#define k (0.865086 * pow(Fe, 2.0))
+#define k (0.865086 * sqrt(Fe))
 #define z (0.08 * Fe)
 #define NBM 13
 #define NBL (NBM - 1)
-#define m 15
+#define m 1
 int gravity = 0;
 int mouseForce = 0;
 
@@ -54,17 +54,17 @@ class Link
 public:
     double l0 = 0.0;
     PMat *M1, *M2;
-    void setup()
-    {
-        double f = k * ((M2->pos - M1->pos) - l0);
-        M1->frc += f;
-        M2->frc -= f;
-    }
     void connect(PMat *_M1, PMat *_M2)
     {
         M1 = _M1;
         M2 = _M2;
         l0 = M2->pos - M1->pos;
+    }
+    void setup()
+    {
+        double f = k * ((M2->pos - M1->pos) - l0);
+        M1->frc += f;
+        M2->frc -= f;
     }
     void setup_frein()
     {
