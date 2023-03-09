@@ -84,7 +84,8 @@ public:
 
     void setup_ressort_frein()
     {
-        double f = Fe * Fe * (k / m) * ((M2->pos - M1->pos) - l0) + Fe * (z / m) * (M2->vit - M1->vit);
+        double h = 1.0 / Fe;
+        double f = h * h * (k / m) * ((M2->pos - M1->pos) - l0) + h * (z / m) * (M2->vit - M1->vit);
         M1->frc += f;
         M2->frc -= f;
     }
