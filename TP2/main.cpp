@@ -11,8 +11,11 @@ using namespace std;
 #define screenWidth 1280
 #define screenHeight 720
 
-#define NBM 13
-#define NBL (NBM - 1)
+#define FLAGWIDTH 5
+#define FLAGHEIGHT 4
+
+#define NBM FLAGWIDTH *FLAGHEIGHT
+#define NBL 55
 
 #define m 1
 
@@ -117,7 +120,7 @@ public:
 
     Vector2 toVector2()
     {
-        return {(float)x, (float)y};
+        return Vector2{(float)x, (float)y};
     }
 };
 
@@ -154,6 +157,11 @@ public:
         frc = {0.0, 0.0};
         pos = iniPos;
     }
+
+    void draw()
+    {
+        DrawCircle(pos.x, pos.y, 10, color);
+    }
 };
 
 class Link
@@ -161,6 +169,7 @@ class Link
 public:
     double l0 = 0.0;
     PMat *M1, *M2;
+    bool connected = false;
 
     void reset()
     {
@@ -174,6 +183,7 @@ public:
         M2 = _M2;
         OwnVector2 delta = M2->pos - M1->pos;
         l0 = sqrt(delta.x * delta.x + delta.y * delta.y);
+        connected = true;
     }
 
     void setup_ressort_frein()
@@ -182,8 +192,8 @@ public:
         OwnVector2 delta = M2->pos - M1->pos;
         double d = sqrt(delta.x * delta.x + delta.y * delta.y);
 
-        double fX = h * h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.x - M1->vit.x);
-        double fY = h * h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.y - M1->vit.y);
+        double fX = h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.x - M1->vit.x);
+        double fY = h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.y - M1->vit.y);
 
         double ux = delta.x / d;
         double uy = delta.y / d;
@@ -203,7 +213,7 @@ public:
     }
 };
 
-void Modeleur(PMat *tabM, Link *tabL)
+void CordeModeleur(PMat *tabM, Link *tabL)
 {
     PMat *M = tabM;
 
@@ -238,13 +248,89 @@ void Modeleur(PMat *tabM, Link *tabL)
     }
 }
 
+void Drapeau2DModeleur(PMat *tabM, Link *tabL)
+{
+    PMat *M = tabM;
+    for (int j = 0; j < FLAGHEIGHT; j++)
+    {
+        M = tabM + j * FLAGWIDTH;
+        M->pos.x = 100.0;
+        M->pos.y = 150.0 + j * (screenHeight - 300.0) / (FLAGHEIGHT - 1.0);
+        M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED));
+        M->initPos();
+    }
+
+    for (int j = 0; j < FLAGHEIGHT; j++)
+    {
+        for (int i = 1; i < FLAGWIDTH; i++)
+        {
+            M = tabM + j * FLAGWIDTH + i;
+            M->pos.x = 100.0 + i * (screenWidth - 500.0) / (FLAGWIDTH - 1.0);
+            M->pos.y = 150.0 + j * (screenHeight - 300.0) / (FLAGHEIGHT - 1.0);
+            M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_PRESSED));
+            M->fixed = false;
+            M->initPos();
+        }
+    }
+
+    int linkIndex = 0;
+    Link *L = tabL;
+
+    for (int j = 0; j < FLAGHEIGHT - 1; j++)
+    {
+        for (int i = 0; i < FLAGWIDTH - 1; i++)
+        {
+            M = tabM + j * FLAGWIDTH + i;
+            L = tabL + linkIndex;
+            L->connect(M, M + 1);
+            linkIndex++;
+            L = tabL + linkIndex;
+            L->connect(M, M + FLAGWIDTH);
+            linkIndex++;
+            L = tabL + linkIndex;
+            L->connect(M, M + FLAGWIDTH + 1);
+            linkIndex++;
+            if (j != 0)
+            {
+                L = tabL + linkIndex;
+                L->connect(M, M - FLAGWIDTH + 1);
+                linkIndex++;
+            }
+        }
+    }
+
+    for (int i = FLAGWIDTH - 1; i < FLAGWIDTH; i++)
+    {
+        for (int j = 0; j < FLAGHEIGHT - 1; j++)
+        {
+            M = tabM + j * FLAGWIDTH + i;
+            L = tabL + linkIndex;
+            L->connect(M, M + FLAGWIDTH);
+            linkIndex++;
+        }
+    }
+
+    for (int j = FLAGHEIGHT - 1; j < FLAGHEIGHT; j++)
+    {
+        for (int i = 0; i < FLAGWIDTH - 1; i++)
+        {
+            M = tabM + j * FLAGWIDTH + i;
+            L = tabL + linkIndex;
+            L->connect(M, M + 1);
+            linkIndex++;
+            L = tabL + linkIndex;
+            L->connect(M, M - FLAGWIDTH + 1);
+            linkIndex++;
+        }
+    }
+}
+
 void MoteurRessortFrein(PMat *tabM, Link *tabL)
 {
 
     for (Link *L = tabL; L < tabL + NBL; L++)
     {
         L->setup_ressort_frein();
-        // L->apply_gravity();
     }
 
     for (PMat *M = tabM; M < tabM + NBM; M++)
@@ -291,11 +377,11 @@ int main()
     PMat *tabM = new PMat[NBM];
     Link *tabL = new Link[NBL];
 
-    InitWindow(screenWidth, screenHeight, "TP1");
+    InitWindow(screenWidth, screenHeight, "TP2");
     GuiLoadStyleCyber();
     SetTargetFPS(60);
 
-    Modeleur(tabM, tabL);
+    Drapeau2DModeleur(tabM, tabL);
 
     while (WindowShouldClose() == false)
     {
@@ -317,12 +403,16 @@ int main()
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
         GuiPanel((Rectangle){0, 0, screenWidth, screenHeight}, "WELCOME TO THE SIMULATION");
 
+        for (Link *L = tabL; L < tabL + NBL; L++)
+        {
+            DrawLineEx(L->M1->pos.toVector2(), L->M2->pos.toVector2(), 3.0, GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
+        }
+
         for (PMat *M = tabM; M < tabM + NBM; M++)
         {
-            if (M < tabM + NBM - 1)
-                DrawLineEx(M->pos.toVector2(), (M + 1)->pos.toVector2(), 3.0, GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
-            DrawCircle(M->pos.x, M->pos.y, 10, M->color);
+            M->draw();
         }
+
         drawGUI = IsKeyPressed(KEY_G) ? !drawGUI : drawGUI;
 
         if (drawGUI)
