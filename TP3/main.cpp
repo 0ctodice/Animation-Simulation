@@ -14,11 +14,11 @@ using namespace std;
 #define FLAGWIDTH 5
 #define FLAGHEIGHT 4
 
-#define NBM FLAGWIDTH *FLAGHEIGHT
-#define NBL 55
+// #define NBM FLAGWIDTH *FLAGHEIGHT
+// #define NBL 55
 
-// #define NBM 13
-// // #define NBL NBM - 1
+#define NBM 13
+#define NBL NBM - 1
 
 #define m 1
 
@@ -30,110 +30,116 @@ float mouseForce = 0;
 
 bool drawGUI = true;
 
-class OwnVector2
+class OwnVector3
 {
 public:
-    double x, y = 0.0;
+    double x, y, z = 0.0;
 
-    OwnVector2(double _x, double _y)
+    OwnVector3(double _x, double _y, double _z)
     {
         x = _x;
         y = _y;
+        z = _z;
     }
 
     // surcharge de l'opérateur +
-    OwnVector2 operator+(OwnVector2 const &obj)
+    OwnVector3 operator+(OwnVector3 const &obj)
     {
-        OwnVector2 res(x + obj.x, y + obj.y);
+        OwnVector3 res(x + obj.x, y + obj.y, z + obj.z);
         return res;
     }
 
     // surcharge de l'opérateur -
-    OwnVector2 operator-(OwnVector2 const &obj)
+    OwnVector3 operator-(OwnVector3 const &obj)
     {
-        OwnVector2 res(x - obj.x, y - obj.y);
+        OwnVector3 res(x - obj.x, y - obj.y, z - obj.z);
         return res;
     }
 
     // surcharge de l'opérateur *
-    OwnVector2 operator*(double const &obj)
+    OwnVector3 operator*(double const &obj)
     {
-        OwnVector2 res(x * obj, y * obj);
+        OwnVector3 res(x * obj, y * obj, z * obj);
         return res;
     }
 
     // surcharge de l'opérateur /
-    OwnVector2 operator/(double const &obj)
+    OwnVector3 operator/(double const &obj)
     {
-        OwnVector2 res(x / obj, y / obj);
+        OwnVector3 res(x / obj, y / obj, z / obj);
         return res;
     }
 
     // surcharge de l'opérateur =
-    OwnVector2 operator=(OwnVector2 const &obj)
+    OwnVector3 operator=(OwnVector3 const &obj)
     {
         x = obj.x;
         y = obj.y;
+        z = obj.z;
         return *this;
     }
 
     // surcharge de l'opérateur +=
-    OwnVector2 operator+=(OwnVector2 const &obj)
+    OwnVector3 operator+=(OwnVector3 const &obj)
     {
         x += obj.x;
         y += obj.y;
+        z += obj.z;
         return *this;
     }
 
     // surcharge de l'opérateur -=
-    OwnVector2 operator-=(OwnVector2 const &obj)
+    OwnVector3 operator-=(OwnVector3 const &obj)
     {
         x -= obj.x;
         y -= obj.y;
+        z -= obj.z;
         return *this;
     }
 
     // surcharge de l'opérateur *=
-    OwnVector2 operator*=(double const &obj)
+    OwnVector3 operator*=(double const &obj)
     {
         x *= obj;
         y *= obj;
+        z *= obj;
         return *this;
     }
 
     // surcharge de l'opérateur /=
-    OwnVector2 operator/=(double const &obj)
+    OwnVector3 operator/=(double const &obj)
     {
         x /= obj;
         y /= obj;
+        z /= obj;
         return *this;
     }
 
     // surcharge de l'opérateur ==
-    bool operator==(OwnVector2 const &obj)
+    bool operator==(OwnVector3 const &obj)
     {
-        return (x == obj.x && y == obj.y);
+        return (x == obj.x && y == obj.y && z == obj.z);
     }
 
     // surcharge de l'opérateur !=
-    bool operator!=(OwnVector2 const &obj)
+    bool operator!=(OwnVector3 const &obj)
     {
-        return (x != obj.x || y != obj.y);
+        return (x != obj.x || y != obj.y || z != obj.z);
     }
 
-    Vector2 toVector2()
+    Vector3 operator!(void)
     {
-        return Vector2{(float)x, (float)y};
+        return {(float)x, (float)y, (float)z};
     }
 };
 
 class PMat
 {
 public:
-    OwnVector2 pos{0.0, 0.0};
-    OwnVector2 iniPos{0.0, 0.0};
-    OwnVector2 vit{0.0, 0.0};
-    OwnVector2 frc{0.0, 0.0};
+    OwnVector3 pos{0.0, 0.0, 0.0};
+    OwnVector3 iniPos{0.0, 0.0, 0.0};
+    OwnVector3 vit{0.0, 0.0, 0.0};
+    OwnVector3 frc{0.0, 0.0, 0.0};
     Color color = BLACK;
     bool fixed = true;
 
@@ -146,24 +152,24 @@ public:
     {
         vit += (frc / m) * h;
         pos += vit * h;
-        frc = {0.0, 0.0};
+        frc = {0.0, 0.0, 0.0};
     }
 
     void setup_pfixe()
     {
-        frc = {0.0, 0.0};
+        frc = {0.0, 0.0, 0.0};
     }
 
     void reset()
     {
-        vit = {0.0, 0.0};
-        frc = {0.0, 0.0};
+        vit = {0.0, 0.0, 0.0};
+        frc = {0.0, 0.0, 0.0};
         pos = iniPos;
     }
 
     void draw()
     {
-        DrawCircle(pos.x, pos.y, 10, color);
+        DrawSphereEx(!pos, 2, 10, 10, color);
     }
 };
 
@@ -176,35 +182,39 @@ public:
 
     void reset()
     {
-        OwnVector2 delta = M2->pos - M1->pos;
-        l0 = sqrt(delta.x * delta.x + delta.y * delta.y);
+        OwnVector3 delta = M2->pos - M1->pos;
+        l0 = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
     }
 
     void connect(PMat *_M1, PMat *_M2)
     {
         M1 = _M1;
         M2 = _M2;
-        OwnVector2 delta = M2->pos - M1->pos;
-        l0 = sqrt(delta.x * delta.x + delta.y * delta.y);
+        OwnVector3 delta = M2->pos - M1->pos;
+        l0 = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
         connected = true;
     }
 
     void setup_ressort_frein()
     {
         double h = Fe;
-        OwnVector2 delta = M2->pos - M1->pos;
-        double d = sqrt(delta.x * delta.x + delta.y * delta.y);
+        OwnVector3 delta = M2->pos - M1->pos;
+        double d = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
 
         double fX = h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.x - M1->vit.x);
         double fY = h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.y - M1->vit.y);
+        double fZ = h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.z - M1->vit.z);
 
         double ux = delta.x / d;
         double uy = delta.y / d;
+        double uz = delta.z / d;
 
         M1->frc.x += fX * ux;
         M1->frc.y += fY * uy;
+        M1->frc.z += fZ * uz;
         M2->frc.x -= fX * ux;
         M2->frc.y -= fY * uy;
+        M2->frc.z -= fZ * uz;
     }
 
     void apply_gravity()
@@ -220,25 +230,28 @@ void CordeModeleur(PMat *tabM, Link *tabL)
 {
     PMat *M = tabM;
 
-    M->pos.x = 100.0;
-    M->pos.y = screenHeight / 2.0;
+    M->pos.x = (-NBM / 2) * 10.0;
+    M->pos.y = 0.0;
+    M->pos.z = 0.0;
     M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED));
     M->initPos();
 
     M++;
 
-    for (int i = 1; i < NBM - 1; i++)
+    for (int i = (-NBM / 2) + 1; i < NBM / 2; i++)
     {
-        M->pos.x = 100.0 + i * (screenWidth - 200.0) / (NBM - 1.0);
-        M->pos.y = screenHeight / 2.0;
+        M->pos.x = i * 10.0;
+        M->pos.y = 0.0;
+        M->pos.z = 0.0;
         M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_PRESSED));
         M->fixed = false;
         M->initPos();
         M++;
     }
 
-    M->pos.x = screenWidth - 100.0;
-    M->pos.y = screenHeight / 2.0;
+    M->pos.x = (NBM / 2) * 10.0;
+    M->pos.y = 0.0;
+    M->pos.z = 0.0;
     M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED));
     M->initPos();
 
@@ -248,6 +261,21 @@ void CordeModeleur(PMat *tabM, Link *tabL)
     {
         L->connect(M, M + 1);
         M++;
+    }
+}
+
+void test(PMat *tabM, Link *tabL)
+{
+    int i = -NBM / 2;
+    for (PMat *M = tabM; M < tabM + NBM; M++)
+    {
+        M->pos.x = (double)i * 10.0;
+        M->pos.y = 0;
+        M->pos.z = 0;
+        M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_PRESSED));
+        M->fixed = false;
+        M->initPos();
+        i++;
     }
 }
 
@@ -338,7 +366,7 @@ void MoteurRessortFrein(PMat *tabM, Link *tabL)
 
     for (PMat *M = tabM; M < tabM + NBM; M++)
     {
-        M->frc.y += gravity * 1000;
+        M->frc.y -= gravity * 1000;
     }
 
     for (PMat *M = tabM; M < tabM + NBM; M++)
@@ -380,42 +408,54 @@ int main()
     PMat *tabM = new PMat[NBM];
     Link *tabL = new Link[NBL];
 
-    InitWindow(screenWidth, screenHeight, "TP2");
+    InitWindow(screenWidth, screenHeight, "TP3");
     GuiLoadStyleCyber();
     SetTargetFPS(60);
 
-    Drapeau2DModeleur(tabM, tabL);
-    // CordeModeleur(tabM, tabL);
+    // Drapeau2DModeleur(tabM, tabL);
+    CordeModeleur(tabM, tabL);
+
+    Camera camera = {0};
+    camera.position = (Vector3){0.0f, 0.0f, 100.0f};
+    camera.target = (Vector3){0.0f, 0.0f, 0.0f};
+    camera.up = (Vector3){0.0f, 1.0f, 0.0f};
+    camera.fovy = 45.0f;
+    camera.projection = CAMERA_PERSPECTIVE;
+    SetCameraMode(camera, CAMERA_ORBITAL);
 
     while (WindowShouldClose() == false)
     {
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-        {
+        // if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        // {
 
-            for (PMat *M = tabM; M < tabM + NBM; M++)
-            {
-                Vector2 mV = M->pos.toVector2();
-                if (abs(Vector2Distance(GetMousePosition(), mV)) < 15.0)
-                {
-                    M->frc.y += mouseForce * 1000000;
-                }
-            }
-        }
+        //     for (PMat *M = tabM; M < tabM + NBM; M++)
+        //     {
+        //         Vector2 mV = {(float)M->pos.x, (float)M->pos.y};
+        //         if (abs(Vector2Distance(GetMousePosition(), mV)) < 15.0)
+        //         {
+        //             M->frc.y += mouseForce * 1000000;
+        //         }
+        //     }
+        // }
 
         MoteurRessortFrein(tabM, tabL);
         BeginDrawing();
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
-        GuiPanel((Rectangle){0, 0, screenWidth, screenHeight}, "WELCOME TO THE SIMULATION");
+
+        BeginMode3D(camera);
+        UpdateCamera(&camera);
 
         for (Link *L = tabL; L < tabL + NBL; L++)
         {
-            DrawLineEx(L->M1->pos.toVector2(), L->M2->pos.toVector2(), 3.0, GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
+            DrawLine3D(!(L->M1->pos), !(L->M2->pos), GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
         }
 
         for (PMat *M = tabM; M < tabM + NBM; M++)
         {
             M->draw();
         }
+
+        EndMode3D();
 
         drawGUI = IsKeyPressed(KEY_G) ? !drawGUI : drawGUI;
 
