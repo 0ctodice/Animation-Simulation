@@ -4,7 +4,7 @@
 
 #define RAYGUI_IMPLEMENTATION
 #include <../GUI/raygui.h>
-#include <../GUI/cyber/cyber.h>
+#include <../GUI/terminal/terminal.h>
 
 using namespace std;
 
@@ -16,7 +16,7 @@ using namespace std;
 #define FLAGRES 5
 
 #define NBM FLAGWIDTH *FLAGHEIGHT
-#define NBL 55
+#define NBL FLAGWIDTH *(FLAGHEIGHT - 1) + FLAGHEIGHT *(FLAGWIDTH - 1) + 2 * (FLAGWIDTH - 1) * (FLAGHEIGHT - 1) + (FLAGWIDTH - 2) * FLAGHEIGHT + (FLAGHEIGHT - 2) * FLAGWIDTH
 
 // #define NBM 13
 // #define NBL NBM - 1
@@ -26,7 +26,7 @@ using namespace std;
 float k = 0.1;
 float z = 0.01;
 float Fe = 400;
-float gravity = 0;
+float g = 0;
 
 bool drawGUI = true;
 
@@ -219,8 +219,8 @@ public:
 
     void apply_gravity()
     {
-        M1->frc.y -= gravity * 1000;
-        M2->frc.y -= gravity * 1000;
+        M1->frc.y -= g * 1000;
+        M2->frc.y -= g * 1000;
     }
 
     void draw()
@@ -296,21 +296,46 @@ void Drapeau3DModeleur(PMat *tabM, Link *tabL)
     int linkIndex = 0;
     Link *L = tabL;
 
-    for (int j = 0; j < FLAGHEIGHT - 1; j++)
+    // PARCOURS LINK GEOMETRIQUE
+
+    for (int j = 0; j < FLAGHEIGHT; j++)
+    {
+        for (int i = 0; i < FLAGWIDTH; i++)
+        {
+            M = tabM + j * FLAGWIDTH + i;
+
+            if (i < FLAGWIDTH - 1)
+            {
+                L = tabL + linkIndex;
+                L->connect(M, M + 1);
+                linkIndex++;
+            }
+
+            if (j < FLAGHEIGHT - 1)
+            {
+                L = tabL + linkIndex;
+                L->connect(M, M + FLAGWIDTH);
+                linkIndex++;
+            }
+        }
+    }
+
+    // PARCOURS LINK CISAILLEMENT
+
+    for (int j = 0; j < FLAGHEIGHT; j++)
     {
         for (int i = 0; i < FLAGWIDTH - 1; i++)
         {
             M = tabM + j * FLAGWIDTH + i;
-            L = tabL + linkIndex;
-            L->connect(M, M + 1);
-            linkIndex++;
-            L = tabL + linkIndex;
-            L->connect(M, M + FLAGWIDTH);
-            linkIndex++;
-            L = tabL + linkIndex;
-            L->connect(M, M + FLAGWIDTH + 1);
-            linkIndex++;
-            if (j != 0)
+
+            if (j < FLAGHEIGHT - 1)
+            {
+                L = tabL + linkIndex;
+                L->connect(M, M + FLAGWIDTH + 1);
+                linkIndex++;
+            }
+
+            if (j > 0)
             {
                 L = tabL + linkIndex;
                 L->connect(M, M - FLAGWIDTH + 1);
@@ -319,28 +344,27 @@ void Drapeau3DModeleur(PMat *tabM, Link *tabL)
         }
     }
 
-    for (int i = FLAGWIDTH - 1; i < FLAGWIDTH; i++)
-    {
-        for (int j = 0; j < FLAGHEIGHT - 1; j++)
-        {
-            M = tabM + j * FLAGWIDTH + i;
-            L = tabL + linkIndex;
-            L->connect(M, M + FLAGWIDTH);
-            linkIndex++;
-        }
-    }
+    // PARCOURS LINK COURBE
 
-    for (int j = FLAGHEIGHT - 1; j < FLAGHEIGHT; j++)
+    for (int j = 0; j < FLAGHEIGHT; j++)
     {
-        for (int i = 0; i < FLAGWIDTH - 1; i++)
+        for (int i = 0; i < FLAGWIDTH; i++)
         {
             M = tabM + j * FLAGWIDTH + i;
-            L = tabL + linkIndex;
-            L->connect(M, M + 1);
-            linkIndex++;
-            L = tabL + linkIndex;
-            L->connect(M, M - FLAGWIDTH + 1);
-            linkIndex++;
+
+            if (i < FLAGWIDTH - 2)
+            {
+                L = tabL + linkIndex;
+                L->connect(M, M + 2);
+                linkIndex++;
+            }
+
+            if (j < FLAGHEIGHT - 2)
+            {
+                L = tabL + linkIndex;
+                L->connect(M, M + 2 * FLAGWIDTH);
+                linkIndex++;
+            }
         }
     }
 }
@@ -362,13 +386,13 @@ void MoteurRessortFrein(PMat *tabM, Link *tabL)
 
 void DrawGUI(PMat *tabM, Link *tabL)
 {
-    gravity = GuiSliderBar((Rectangle){screenWidth - 150, 50, 100, 30}, "GRAVITY", std::to_string(gravity).substr(0, std::to_string(gravity).find(".") + 3).c_str(), gravity, 0, 1);
+    g = GuiSliderBar((Rectangle){screenWidth - 150, 50, 100, 30}, "G", std::to_string(g).substr(0, std::to_string(g).find(".") + 3).c_str(), g, 0, 1);
     k = GuiSliderBar((Rectangle){screenWidth - 150, 90, 100, 30}, "K", std::to_string(k).substr(0, std::to_string(k).find(".") + 3).c_str(), k, 0, 1);
     z = GuiSliderBar((Rectangle){screenWidth - 150, 130, 100, 30}, "Z", std::to_string(z).substr(0, std::to_string(z).find(".") + 3).c_str(), z, 0, 1);
     Fe = GuiSliderBar((Rectangle){screenWidth - 150, 170, 100, 30}, "Fe", std::to_string(Fe).substr(0, std::to_string(Fe).find(".")).c_str(), Fe, 0, 1000);
     if (GuiButton((Rectangle){screenWidth - 150, 210, 100, 30}, "RESET"))
     {
-        gravity = 0;
+        g = 0;
         k = 0.1;
         z = 0.01;
         Fe = 400;
@@ -391,8 +415,8 @@ int main()
     Link *tabL = new Link[NBL];
 
     InitWindow(screenWidth, screenHeight, "TP3");
-    GuiLoadStyleCyber();
-    SetTargetFPS(60);
+    GuiLoadStyleTerminal();
+    SetTargetFPS(120);
 
     Drapeau3DModeleur(tabM, tabL);
     // CordeModeleur(tabM, tabL);
