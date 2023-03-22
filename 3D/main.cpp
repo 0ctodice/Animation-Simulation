@@ -27,6 +27,8 @@ float k = 0.1;
 float z = 0.01;
 float Fe = 400;
 float g = 0;
+float a = 0.5;
+float b = 0.75;
 
 bool drawGUI = true;
 
@@ -173,12 +175,20 @@ public:
     }
 };
 
+enum LINKTYPE
+{
+    STRUCTURAL,
+    SHEAR,
+    BEND
+};
+
 class Link
 {
 public:
     double l0 = 0.0;
     PMat *M1, *M2;
     bool connected = false;
+    LINKTYPE type;
 
     void reset()
     {
@@ -200,10 +210,28 @@ public:
         double h = Fe;
         OwnVector3 delta = M2->pos - M1->pos;
         double d = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
+        double K = 0.0;
+        double Z = 0.0;
 
-        double fX = h * h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.x - M1->vit.x);
-        double fY = h * h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.y - M1->vit.y);
-        double fZ = h * h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.z - M1->vit.z);
+        switch (type)
+        {
+        case STRUCTURAL:
+            K = h * h * (k / m);
+            Z = h * (z / m);
+            break;
+        case SHEAR:
+            K = a * k;
+            Z = a * z;
+            break;
+        case BEND:
+            K = b * k;
+            Z = b * z;
+            break;
+        }
+
+        double fX = K * (d - l0) + Z * (M2->vit.x - M1->vit.x);
+        double fY = K * (d - l0) + Z * (M2->vit.y - M1->vit.y);
+        double fZ = K * (d - l0) + Z * (M2->vit.z - M1->vit.z);
 
         double ux = delta.x / d;
         double uy = delta.y / d;
@@ -219,14 +247,15 @@ public:
 
     void apply_gravity()
     {
-        M1->frc.y -= g * 1000;
-        M2->frc.y -= g * 1000;
+        for (PMat *M = M1; M <= M2; M++)
+        {
+            M->frc.y -= m * g * 10;
+        }
     }
 
     void draw()
     {
-        // DrawLine3D(!(M1->pos), !(M2->pos), GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
-        DrawCylinderEx(!M1->pos, !M2->pos, 0.1, 0.1, 10, GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
+        DrawLine3D(!(M1->pos), !(M2->pos), GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
     }
 };
 
@@ -266,6 +295,8 @@ void CordeModeleur(PMat *tabM, Link *tabL)
         L->connect(M, M + 1);
         M++;
     }
+
+    delete M;
 }
 
 void Drapeau3DModeleur(PMat *tabM, Link *tabL)
@@ -308,6 +339,7 @@ void Drapeau3DModeleur(PMat *tabM, Link *tabL)
             {
                 L = tabL + linkIndex;
                 L->connect(M, M + 1);
+                L->type = STRUCTURAL;
                 linkIndex++;
             }
 
@@ -315,6 +347,7 @@ void Drapeau3DModeleur(PMat *tabM, Link *tabL)
             {
                 L = tabL + linkIndex;
                 L->connect(M, M + FLAGWIDTH);
+                L->type = STRUCTURAL;
                 linkIndex++;
             }
         }
@@ -332,6 +365,7 @@ void Drapeau3DModeleur(PMat *tabM, Link *tabL)
             {
                 L = tabL + linkIndex;
                 L->connect(M, M + FLAGWIDTH + 1);
+                L->type = SHEAR;
                 linkIndex++;
             }
 
@@ -339,6 +373,7 @@ void Drapeau3DModeleur(PMat *tabM, Link *tabL)
             {
                 L = tabL + linkIndex;
                 L->connect(M, M - FLAGWIDTH + 1);
+                L->type = SHEAR;
                 linkIndex++;
             }
         }
@@ -356,6 +391,7 @@ void Drapeau3DModeleur(PMat *tabM, Link *tabL)
             {
                 L = tabL + linkIndex;
                 L->connect(M, M + 2);
+                L->type = BEND;
                 linkIndex++;
             }
 
@@ -363,10 +399,14 @@ void Drapeau3DModeleur(PMat *tabM, Link *tabL)
             {
                 L = tabL + linkIndex;
                 L->connect(M, M + 2 * FLAGWIDTH);
+                L->type = BEND;
                 linkIndex++;
             }
         }
     }
+
+    delete M;
+    delete L;
 }
 
 void MoteurRessortFrein(PMat *tabM, Link *tabL)
@@ -390,12 +430,16 @@ void DrawGUI(PMat *tabM, Link *tabL)
     k = GuiSliderBar((Rectangle){screenWidth - 150, 90, 100, 30}, "K", std::to_string(k).substr(0, std::to_string(k).find(".") + 3).c_str(), k, 0, 1);
     z = GuiSliderBar((Rectangle){screenWidth - 150, 130, 100, 30}, "Z", std::to_string(z).substr(0, std::to_string(z).find(".") + 3).c_str(), z, 0, 1);
     Fe = GuiSliderBar((Rectangle){screenWidth - 150, 170, 100, 30}, "Fe", std::to_string(Fe).substr(0, std::to_string(Fe).find(".")).c_str(), Fe, 0, 1000);
-    if (GuiButton((Rectangle){screenWidth - 150, 210, 100, 30}, "RESET"))
+    a = GuiSliderBar((Rectangle){screenWidth - 150, 210, 100, 30}, "A", std::to_string(a).substr(0, std::to_string(a).find(".") + 3).c_str(), a, 0.5, 1);
+    b = GuiSliderBar((Rectangle){screenWidth - 150, 250, 100, 30}, "B", std::to_string(b).substr(0, std::to_string(b).find(".") + 3).c_str(), b, 0.75, 1);
+    if (GuiButton((Rectangle){screenWidth - 150, 290, 100, 30}, "RESET"))
     {
         g = 0;
         k = 0.1;
         z = 0.01;
         Fe = 400;
+        a = 0.5;
+        b = 0.75;
 
         for (PMat *M = tabM; M < tabM + NBM; M++)
         {
