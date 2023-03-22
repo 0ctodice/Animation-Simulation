@@ -11,9 +11,9 @@ using namespace std;
 #define screenWidth 1280
 #define screenHeight 720
 
-#define FLAGWIDTH 5
-#define FLAGHEIGHT 4
-#define FLAGRES 5
+#define FLAGWIDTH 100
+#define FLAGHEIGHT 75
+#define FLAGRES 1
 
 #define NBM FLAGWIDTH *FLAGHEIGHT
 #define NBL FLAGWIDTH *(FLAGHEIGHT - 1) + FLAGHEIGHT *(FLAGWIDTH - 1) + 2 * (FLAGWIDTH - 1) * (FLAGHEIGHT - 1) + (FLAGWIDTH - 2) * FLAGHEIGHT + (FLAGHEIGHT - 2) * FLAGWIDTH
@@ -27,8 +27,9 @@ float k = 0.1;
 float z = 0.01;
 float Fe = 400;
 float g = 0;
-float a = 0.5;
-float b = 0.75;
+float a = 1;
+float b = 1;
+float w = 1;
 
 bool drawGUI = true;
 
@@ -144,6 +145,7 @@ public:
     OwnVector3 frc{0.0, 0.0, 0.0};
     Color color = BLACK;
     bool fixed = true;
+    bool exist = true;
 
     void initPos()
     {
@@ -167,6 +169,7 @@ public:
         vit = {0.0, 0.0, 0.0};
         frc = {0.0, 0.0, 0.0};
         pos = iniPos;
+        exist = true;
     }
 
     void draw()
@@ -174,6 +177,13 @@ public:
         DrawSphereEx(!pos, 1, 10, 10, color);
     }
 };
+
+OwnVector3 wind()
+{
+    double alphaT = cos(2 * PI * GetFrameTime() / (Fe));
+    double betaT = cos(2 * PI * 0.5 * GetFrameTime() * (1.0 / Fe));
+    return {cos(alphaT) * sin(betaT), sin(alphaT) * cos(betaT), cos(betaT)};
+}
 
 enum LINKTYPE
 {
@@ -207,6 +217,11 @@ public:
 
     void setup_ressort_frein()
     {
+        if (!M1->exist || !M2->exist)
+        {
+            return;
+        }
+
         double h = Fe;
         OwnVector3 delta = M2->pos - M1->pos;
         double d = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
@@ -220,22 +235,33 @@ public:
             Z = h * (z / m);
             break;
         case SHEAR:
-            K = a * k;
-            Z = a * z;
+            K = a * h * h * (k / m);
+            Z = a * h * (z / m);
             break;
         case BEND:
-            K = b * k;
-            Z = b * z;
+            K = b * h * h * (k / m);
+            Z = b * h * (z / m);
             break;
         }
 
-        double fX = K * (d - l0) + Z * (M2->vit.x - M1->vit.x);
-        double fY = K * (d - l0) + Z * (M2->vit.y - M1->vit.y);
-        double fZ = K * (d - l0) + Z * (M2->vit.z - M1->vit.z);
+        auto _w = wind();
+
+        double fX = K * (d - l0) + Z * (M2->vit.x - M1->vit.x) + _w.x * w;
+        double fY = K * (d - l0) + Z * (M2->vit.y - M1->vit.y) + _w.y * w;
+        double fZ = K * (d - l0) + Z * (M2->vit.z - M1->vit.z) + _w.z * w;
 
         double ux = delta.x / d;
         double uy = delta.y / d;
         double uz = delta.z / d;
+
+        double totalFrc = sqrt(fX * fX + fY * fY + fZ * fZ);
+
+        if (totalFrc > 20000)
+        {
+            M1->exist = false;
+            M2->exist = false;
+            return;
+        }
 
         M1->frc.x += fX * ux;
         M1->frc.y += fY * uy;
@@ -255,7 +281,8 @@ public:
 
     void draw()
     {
-        DrawLine3D(!(M1->pos), !(M2->pos), GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
+        if (M1->exist && M2->exist)
+            DrawLine3D(!(M1->pos), !(M2->pos), GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
     }
 };
 
@@ -415,7 +442,12 @@ void MoteurRessortFrein(PMat *tabM, Link *tabL)
     for (Link *L = tabL; L < tabL + NBL; L++)
     {
         L->setup_ressort_frein();
-        L->apply_gravity();
+        // L->apply_gravity();
+    }
+
+    for (PMat *M = tabM; M < tabM + NBM; M++)
+    {
+        M->frc.y -= m * g * 10.0;
     }
 
     for (PMat *M = tabM; M < tabM + NBM; M++)
@@ -432,14 +464,16 @@ void DrawGUI(PMat *tabM, Link *tabL)
     Fe = GuiSliderBar((Rectangle){screenWidth - 150, 170, 100, 30}, "Fe", std::to_string(Fe).substr(0, std::to_string(Fe).find(".")).c_str(), Fe, 0, 1000);
     a = GuiSliderBar((Rectangle){screenWidth - 150, 210, 100, 30}, "A", std::to_string(a).substr(0, std::to_string(a).find(".") + 3).c_str(), a, 0.5, 1);
     b = GuiSliderBar((Rectangle){screenWidth - 150, 250, 100, 30}, "B", std::to_string(b).substr(0, std::to_string(b).find(".") + 3).c_str(), b, 0.75, 1);
-    if (GuiButton((Rectangle){screenWidth - 150, 290, 100, 30}, "RESET"))
+    w = GuiSliderBar((Rectangle){screenWidth - 150, 290, 100, 30}, "W", std::to_string(w).substr(0, std::to_string(w).find(".")).c_str(), w, 1, 10000);
+    if (GuiButton((Rectangle){screenWidth - 150, 330, 100, 30}, "RESET"))
     {
         g = 0;
         k = 0.1;
         z = 0.01;
         Fe = 400;
-        a = 0.5;
-        b = 0.75;
+        a = 1;
+        b = 1;
+        w = 1;
 
         for (PMat *M = tabM; M < tabM + NBM; M++)
         {
@@ -471,13 +505,18 @@ int main()
     camera.up = (Vector3){0.0f, 1.0f, 0.0f};
     camera.fovy = 45.0f;
     camera.projection = CAMERA_PERSPECTIVE;
-    SetCameraMode(camera, CAMERA_ORBITAL);
+    // SetCameraMode(camera, CAMERA_ORBITAL);
 
     while (WindowShouldClose() == false)
     {
         MoteurRessortFrein(tabM, tabL);
         BeginDrawing();
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
+
+        if (IsKeyDown(KEY_DOWN))
+            camera.position.z += 1.0f;
+        if (IsKeyDown(KEY_UP))
+            camera.position.z -= 1.0f;
 
         BeginMode3D(camera);
         UpdateCamera(&camera);
@@ -487,10 +526,10 @@ int main()
             L->draw();
         }
 
-        for (PMat *M = tabM; M < tabM + NBM; M++)
-        {
-            M->draw();
-        }
+        // for (PMat *M = tabM; M < tabM + NBM; M++)
+        // {
+        //     M->draw();
+        // }
 
         EndMode3D();
 
