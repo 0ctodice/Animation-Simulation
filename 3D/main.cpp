@@ -3,8 +3,8 @@
 #include <raymath.h>
 
 #define RAYGUI_IMPLEMENTATION
-#include <raygui.h>
-#include <../styles/cyber/cyber.h>
+#include <../GUI/raygui.h>
+#include <../GUI/cyber/cyber.h>
 
 using namespace std;
 
@@ -13,20 +13,20 @@ using namespace std;
 
 #define FLAGWIDTH 5
 #define FLAGHEIGHT 4
+#define FLAGRES 5
 
-// #define NBM FLAGWIDTH *FLAGHEIGHT
-// #define NBL 55
+#define NBM FLAGWIDTH *FLAGHEIGHT
+#define NBL 55
 
-#define NBM 13
-#define NBL NBM - 1
+// #define NBM 13
+// #define NBL NBM - 1
 
 #define m 1
 
 float k = 0.1;
 float z = 0.01;
-float Fe = 100;
+float Fe = 400;
 float gravity = 0;
-float mouseForce = 0;
 
 bool drawGUI = true;
 
@@ -169,7 +169,7 @@ public:
 
     void draw()
     {
-        DrawSphereEx(!pos, 2, 10, 10, color);
+        DrawSphereEx(!pos, 1, 10, 10, color);
     }
 };
 
@@ -201,9 +201,9 @@ public:
         OwnVector3 delta = M2->pos - M1->pos;
         double d = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
 
-        double fX = h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.x - M1->vit.x);
-        double fY = h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.y - M1->vit.y);
-        double fZ = h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.z - M1->vit.z);
+        double fX = h * h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.x - M1->vit.x);
+        double fY = h * h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.y - M1->vit.y);
+        double fZ = h * h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.z - M1->vit.z);
 
         double ux = delta.x / d;
         double uy = delta.y / d;
@@ -219,10 +219,14 @@ public:
 
     void apply_gravity()
     {
-        for (PMat *M = M1; M <= M2; M++)
-        {
-            M->frc.y += gravity * 1000;
-        }
+        M1->frc.y -= gravity * 1000;
+        M2->frc.y -= gravity * 1000;
+    }
+
+    void draw()
+    {
+        // DrawLine3D(!(M1->pos), !(M2->pos), GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
+        DrawCylinderEx(!M1->pos, !M2->pos, 0.1, 0.1, 10, GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
     }
 };
 
@@ -264,29 +268,14 @@ void CordeModeleur(PMat *tabM, Link *tabL)
     }
 }
 
-void test(PMat *tabM, Link *tabL)
-{
-    int i = -NBM / 2;
-    for (PMat *M = tabM; M < tabM + NBM; M++)
-    {
-        M->pos.x = (double)i * 10.0;
-        M->pos.y = 0;
-        M->pos.z = 0;
-        M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_PRESSED));
-        M->fixed = false;
-        M->initPos();
-        i++;
-    }
-}
-
-void Drapeau2DModeleur(PMat *tabM, Link *tabL)
+void Drapeau3DModeleur(PMat *tabM, Link *tabL)
 {
     PMat *M = tabM;
     for (int j = 0; j < FLAGHEIGHT; j++)
     {
         M = tabM + j * FLAGWIDTH;
-        M->pos.x = 100.0;
-        M->pos.y = 150.0 + j * (screenHeight - 300.0) / (FLAGHEIGHT - 1.0);
+        M->pos.x = (-FLAGWIDTH / 2) * FLAGRES;
+        M->pos.y = (j - FLAGHEIGHT / 2) * FLAGRES;
         M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED));
         M->initPos();
     }
@@ -296,8 +285,8 @@ void Drapeau2DModeleur(PMat *tabM, Link *tabL)
         for (int i = 1; i < FLAGWIDTH; i++)
         {
             M = tabM + j * FLAGWIDTH + i;
-            M->pos.x = 100.0 + i * (screenWidth - 500.0) / (FLAGWIDTH - 1.0);
-            M->pos.y = 150.0 + j * (screenHeight - 300.0) / (FLAGHEIGHT - 1.0);
+            M->pos.x = (i - FLAGWIDTH / 2) * FLAGRES;
+            M->pos.y = (j - FLAGHEIGHT / 2) * FLAGRES;
             M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_PRESSED));
             M->fixed = false;
             M->initPos();
@@ -362,11 +351,7 @@ void MoteurRessortFrein(PMat *tabM, Link *tabL)
     for (Link *L = tabL; L < tabL + NBL; L++)
     {
         L->setup_ressort_frein();
-    }
-
-    for (PMat *M = tabM; M < tabM + NBM; M++)
-    {
-        M->frc.y -= gravity * 1000;
+        L->apply_gravity();
     }
 
     for (PMat *M = tabM; M < tabM + NBM; M++)
@@ -378,19 +363,16 @@ void MoteurRessortFrein(PMat *tabM, Link *tabL)
 void DrawGUI(PMat *tabM, Link *tabL)
 {
     gravity = GuiSliderBar((Rectangle){screenWidth - 150, 50, 100, 30}, "GRAVITY", std::to_string(gravity).substr(0, std::to_string(gravity).find(".") + 3).c_str(), gravity, 0, 1);
-    mouseForce = GuiSliderBar((Rectangle){screenWidth - 150, 90, 100, 30}, "FORCE", std::to_string(mouseForce).substr(0, std::to_string(mouseForce).find(".") + 3).c_str(), mouseForce, 0, 1);
-    k = GuiSliderBar((Rectangle){screenWidth - 150, 130, 100, 30}, "K", std::to_string(k).substr(0, std::to_string(k).find(".") + 3).c_str(), k, 0, 1);
-    z = GuiSliderBar((Rectangle){screenWidth - 150, 170, 100, 30}, "Z", std::to_string(z).substr(0, std::to_string(z).find(".") + 3).c_str(), z, 0, 1);
-    Fe = GuiSliderBar((Rectangle){screenWidth - 150, 210, 100, 30}, "Fe", std::to_string(Fe).substr(0, std::to_string(Fe).find(".")).c_str(), Fe, 0, 1000);
-    const char *FPS = ("FPS: " + std::to_string(GetFPS())).c_str();
-    GuiLabel((Rectangle){screenWidth - 130, 250, 100, 30}, FPS);
-    if (GuiButton((Rectangle){screenWidth - 150, 280, 100, 30}, "RESET"))
+    k = GuiSliderBar((Rectangle){screenWidth - 150, 90, 100, 30}, "K", std::to_string(k).substr(0, std::to_string(k).find(".") + 3).c_str(), k, 0, 1);
+    z = GuiSliderBar((Rectangle){screenWidth - 150, 130, 100, 30}, "Z", std::to_string(z).substr(0, std::to_string(z).find(".") + 3).c_str(), z, 0, 1);
+    Fe = GuiSliderBar((Rectangle){screenWidth - 150, 170, 100, 30}, "Fe", std::to_string(Fe).substr(0, std::to_string(Fe).find(".")).c_str(), Fe, 0, 1000);
+    if (GuiButton((Rectangle){screenWidth - 150, 210, 100, 30}, "RESET"))
     {
         gravity = 0;
-        mouseForce = 0;
         k = 0.1;
         z = 0.01;
-        Fe = 100;
+        Fe = 400;
+
         for (PMat *M = tabM; M < tabM + NBM; M++)
         {
             M->reset();
@@ -412,8 +394,8 @@ int main()
     GuiLoadStyleCyber();
     SetTargetFPS(60);
 
-    // Drapeau2DModeleur(tabM, tabL);
-    CordeModeleur(tabM, tabL);
+    Drapeau3DModeleur(tabM, tabL);
+    // CordeModeleur(tabM, tabL);
 
     Camera camera = {0};
     camera.position = (Vector3){0.0f, 0.0f, 100.0f};
@@ -425,19 +407,6 @@ int main()
 
     while (WindowShouldClose() == false)
     {
-        // if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-        // {
-
-        //     for (PMat *M = tabM; M < tabM + NBM; M++)
-        //     {
-        //         Vector2 mV = {(float)M->pos.x, (float)M->pos.y};
-        //         if (abs(Vector2Distance(GetMousePosition(), mV)) < 15.0)
-        //         {
-        //             M->frc.y += mouseForce * 1000000;
-        //         }
-        //     }
-        // }
-
         MoteurRessortFrein(tabM, tabL);
         BeginDrawing();
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
@@ -447,7 +416,7 @@ int main()
 
         for (Link *L = tabL; L < tabL + NBL; L++)
         {
-            DrawLine3D(!(L->M1->pos), !(L->M2->pos), GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
+            L->draw();
         }
 
         for (PMat *M = tabM; M < tabM + NBM; M++)
@@ -460,7 +429,10 @@ int main()
         drawGUI = IsKeyPressed(KEY_G) ? !drawGUI : drawGUI;
 
         if (drawGUI)
+        {
             DrawGUI(tabM, tabL);
+            DrawFPS(10, 10);
+        }
 
         EndDrawing();
     }
