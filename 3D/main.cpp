@@ -431,9 +431,6 @@ void Drapeau3DModeleur(PMat *tabM, Link *tabL)
             }
         }
     }
-
-    delete M;
-    delete L;
 }
 
 void MoteurRessortFrein(PMat *tabM, Link *tabL)
@@ -505,7 +502,6 @@ int main()
     camera.up = (Vector3){0.0f, 1.0f, 0.0f};
     camera.fovy = 45.0f;
     camera.projection = CAMERA_PERSPECTIVE;
-    // SetCameraMode(camera, CAMERA_ORBITAL);
 
     while (WindowShouldClose() == false)
     {
@@ -513,13 +509,12 @@ int main()
         BeginDrawing();
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
 
-        if (IsKeyDown(KEY_DOWN))
-            camera.position.z += 1.0f;
-        if (IsKeyDown(KEY_UP))
-            camera.position.z -= 1.0f;
-
         BeginMode3D(camera);
-        UpdateCamera(&camera);
+        if (IsKeyDown(KEY_DOWN))
+            UpdateCameraPro(&camera, {-1.0f, 0, 0}, {0, 0, 0}, 0);
+
+        if (IsKeyDown(KEY_UP))
+            UpdateCameraPro(&camera, {1.0f, 0, 0}, {0, 0, 0}, 0);
 
         for (Link *L = tabL; L < tabL + NBL; L++)
         {
