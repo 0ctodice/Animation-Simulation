@@ -11,7 +11,7 @@ using namespace std;
 #define screenWidth 1280
 #define screenHeight 720
 
-#define FLAGWIDTH 100
+#define FLAGWIDTH 75
 #define FLAGHEIGHT 75
 #define FLAGRES 1
 
@@ -30,6 +30,7 @@ float g = 0;
 float a = 1;
 float b = 1;
 float w = 1;
+float r = 100;
 
 bool drawGUI = true;
 
@@ -256,7 +257,7 @@ public:
 
         double totalFrc = sqrt(fX * fX + fY * fY + fZ * fZ);
 
-        if (totalFrc > 20000)
+        if (totalFrc > r * 1000)
         {
             M1->exist = false;
             M2->exist = false;
@@ -444,7 +445,7 @@ void MoteurRessortFrein(PMat *tabM, Link *tabL)
 
     for (PMat *M = tabM; M < tabM + NBM; M++)
     {
-        M->frc.y -= m * g * 10.0;
+        M->frc.y -= m * g * 100.0;
     }
 
     for (PMat *M = tabM; M < tabM + NBM; M++)
@@ -462,7 +463,8 @@ void DrawGUI(PMat *tabM, Link *tabL)
     a = GuiSliderBar((Rectangle){screenWidth - 150, 210, 100, 30}, "A", std::to_string(a).substr(0, std::to_string(a).find(".") + 3).c_str(), a, 0.5, 1);
     b = GuiSliderBar((Rectangle){screenWidth - 150, 250, 100, 30}, "B", std::to_string(b).substr(0, std::to_string(b).find(".") + 3).c_str(), b, 0.75, 1);
     w = GuiSliderBar((Rectangle){screenWidth - 150, 290, 100, 30}, "W", std::to_string(w).substr(0, std::to_string(w).find(".")).c_str(), w, 1, 10000);
-    if (GuiButton((Rectangle){screenWidth - 150, 330, 100, 30}, "RESET"))
+    r = GuiSliderBar((Rectangle){screenWidth - 150, 330, 100, 30}, "R", std::to_string(r).substr(0, std::to_string(r).find(".") + 3).c_str(), r, 0, 100);
+    if (GuiButton((Rectangle){screenWidth - 150, 370, 100, 30}, "RESET"))
     {
         g = 0;
         k = 0.1;
@@ -471,6 +473,7 @@ void DrawGUI(PMat *tabM, Link *tabL)
         a = 1;
         b = 1;
         w = 1;
+        r = 100;
 
         for (PMat *M = tabM; M < tabM + NBM; M++)
         {
@@ -510,21 +513,13 @@ int main()
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
 
         BeginMode3D(camera);
-        if (IsKeyDown(KEY_DOWN))
-            UpdateCameraPro(&camera, {-1.0f, 0, 0}, {0, 0, 0}, 0);
 
-        if (IsKeyDown(KEY_UP))
-            UpdateCameraPro(&camera, {1.0f, 0, 0}, {0, 0, 0}, 0);
+        UpdateCameraPro(&camera, {GetMouseWheelMove(), 0, 0}, {0, 0, 0}, 0);
 
         for (Link *L = tabL; L < tabL + NBL; L++)
         {
             L->draw();
         }
-
-        // for (PMat *M = tabM; M < tabM + NBM; M++)
-        // {
-        //     M->draw();
-        // }
 
         EndMode3D();
 
