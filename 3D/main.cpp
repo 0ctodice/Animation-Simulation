@@ -11,8 +11,8 @@ using namespace std;
 #define screenWidth 1280
 #define screenHeight 720
 
-#define FLAGWIDTH 75
-#define FLAGHEIGHT 75
+#define FLAGWIDTH 25
+#define FLAGHEIGHT 25
 #define FLAGRES 1
 
 #define NBM FLAGWIDTH *FLAGHEIGHT
@@ -247,13 +247,13 @@ public:
 
         auto _w = wind();
 
-        double fX = K * (d - l0) + Z * (M2->vit.x - M1->vit.x) + _w.x * w;
-        double fY = K * (d - l0) + Z * (M2->vit.y - M1->vit.y) + _w.y * w;
-        double fZ = K * (d - l0) + Z * (M2->vit.z - M1->vit.z) + _w.z * w;
-
         double ux = delta.x / d;
         double uy = delta.y / d;
         double uz = delta.z / d;
+
+        double fX = K * (d - l0) * ux + Z * (M2->vit.x - M1->vit.x) + _w.x * w;
+        double fY = K * (d - l0) * uy + Z * (M2->vit.y - M1->vit.y) + _w.y * w;
+        double fZ = K * (d - l0) * uz + Z * (M2->vit.z - M1->vit.z) + _w.z * w;
 
         double totalFrc = sqrt(fX * fX + fY * fY + fZ * fZ);
 
@@ -264,20 +264,18 @@ public:
             return;
         }
 
-        M1->frc.x += fX * ux;
-        M1->frc.y += fY * uy;
-        M1->frc.z += fZ * uz;
-        M2->frc.x -= fX * ux;
-        M2->frc.y -= fY * uy;
-        M2->frc.z -= fZ * uz;
+        M1->frc.x += fX;
+        M1->frc.y += fY;
+        M1->frc.z += fZ;
+        M2->frc.x -= fX;
+        M2->frc.y -= fY;
+        M2->frc.z -= fZ;
     }
 
     void apply_gravity()
     {
-        for (PMat *M = M1; M <= M2; M++)
-        {
-            M->frc.y -= m * g * 10;
-        }
+        M1->frc.y -= m * g * Fe;
+        M2->frc.y -= m * g * Fe;
     }
 
     void draw()
@@ -440,12 +438,7 @@ void MoteurRessortFrein(PMat *tabM, Link *tabL)
     for (Link *L = tabL; L < tabL + NBL; L++)
     {
         L->setup_ressort_frein();
-        // L->apply_gravity();
-    }
-
-    for (PMat *M = tabM; M < tabM + NBM; M++)
-    {
-        M->frc.y -= m * g * 100.0;
+        L->apply_gravity();
     }
 
     for (PMat *M = tabM; M < tabM + NBM; M++)
