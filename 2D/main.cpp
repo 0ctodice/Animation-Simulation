@@ -3,8 +3,8 @@
 #include <raymath.h>
 
 #define RAYGUI_IMPLEMENTATION
-#include <raygui.h>
-#include <../styles/cyber/cyber.h>
+#include <../GUI/raygui.h>
+#include <../GUI/cyber/cyber.h>
 
 using namespace std;
 
@@ -14,11 +14,8 @@ using namespace std;
 #define FLAGWIDTH 5
 #define FLAGHEIGHT 4
 
-#define NBM FLAGWIDTH *FLAGHEIGHT
-#define NBL 55
-
-// #define NBM 13
-// // #define NBL NBM - 1
+#define NBM 13
+#define NBL NBM - 1
 
 #define m 1
 
@@ -195,16 +192,16 @@ public:
         OwnVector2 delta = M2->pos - M1->pos;
         double d = sqrt(delta.x * delta.x + delta.y * delta.y);
 
-        double fX = h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.x - M1->vit.x);
-        double fY = h * (k / m) * (d - l0) + h * (z / m) * (M2->vit.y - M1->vit.y);
-
         double ux = delta.x / d;
         double uy = delta.y / d;
 
-        M1->frc.x += fX * ux;
-        M1->frc.y += fY * uy;
-        M2->frc.x -= fX * ux;
-        M2->frc.y -= fY * uy;
+        double fX = h * (k / m) * (d - l0) * ux + h * (z / m) * (M2->vit.x - M1->vit.x);
+        double fY = h * (k / m) * (d - l0) * uy + h * (z / m) * (M2->vit.y - M1->vit.y);
+
+        M1->frc.x += fX;
+        M1->frc.y += fY;
+        M2->frc.x -= fX;
+        M2->frc.y -= fY;
     }
 
     void apply_gravity()
@@ -248,83 +245,6 @@ void CordeModeleur(PMat *tabM, Link *tabL)
     {
         L->connect(M, M + 1);
         M++;
-    }
-}
-
-void Drapeau2DModeleur(PMat *tabM, Link *tabL)
-{
-    PMat *M = tabM;
-    for (int j = 0; j < FLAGHEIGHT; j++)
-    {
-        M = tabM + j * FLAGWIDTH;
-        M->pos.x = 100.0;
-        M->pos.y = 150.0 + j * (screenHeight - 300.0) / (FLAGHEIGHT - 1.0);
-        M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED));
-        M->initPos();
-    }
-
-    for (int j = 0; j < FLAGHEIGHT; j++)
-    {
-        for (int i = 1; i < FLAGWIDTH; i++)
-        {
-            M = tabM + j * FLAGWIDTH + i;
-            M->pos.x = 100.0 + i * (screenWidth - 500.0) / (FLAGWIDTH - 1.0);
-            M->pos.y = 150.0 + j * (screenHeight - 300.0) / (FLAGHEIGHT - 1.0);
-            M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_PRESSED));
-            M->fixed = false;
-            M->initPos();
-        }
-    }
-
-    int linkIndex = 0;
-    Link *L = tabL;
-
-    for (int j = 0; j < FLAGHEIGHT - 1; j++)
-    {
-        for (int i = 0; i < FLAGWIDTH - 1; i++)
-        {
-            M = tabM + j * FLAGWIDTH + i;
-            L = tabL + linkIndex;
-            L->connect(M, M + 1);
-            linkIndex++;
-            L = tabL + linkIndex;
-            L->connect(M, M + FLAGWIDTH);
-            linkIndex++;
-            L = tabL + linkIndex;
-            L->connect(M, M + FLAGWIDTH + 1);
-            linkIndex++;
-            if (j != 0)
-            {
-                L = tabL + linkIndex;
-                L->connect(M, M - FLAGWIDTH + 1);
-                linkIndex++;
-            }
-        }
-    }
-
-    for (int i = FLAGWIDTH - 1; i < FLAGWIDTH; i++)
-    {
-        for (int j = 0; j < FLAGHEIGHT - 1; j++)
-        {
-            M = tabM + j * FLAGWIDTH + i;
-            L = tabL + linkIndex;
-            L->connect(M, M + FLAGWIDTH);
-            linkIndex++;
-        }
-    }
-
-    for (int j = FLAGHEIGHT - 1; j < FLAGHEIGHT; j++)
-    {
-        for (int i = 0; i < FLAGWIDTH - 1; i++)
-        {
-            M = tabM + j * FLAGWIDTH + i;
-            L = tabL + linkIndex;
-            L->connect(M, M + 1);
-            linkIndex++;
-            L = tabL + linkIndex;
-            L->connect(M, M - FLAGWIDTH + 1);
-            linkIndex++;
-        }
     }
 }
 
@@ -384,8 +304,7 @@ int main()
     GuiLoadStyleCyber();
     SetTargetFPS(60);
 
-    Drapeau2DModeleur(tabM, tabL);
-    // CordeModeleur(tabM, tabL);
+    CordeModeleur(tabM, tabL);
 
     while (WindowShouldClose() == false)
     {
