@@ -19,6 +19,7 @@
 sudo apt install build-essential git
 sudo apt install cmake
 sudo apt install libasound2-dev mesa-common-dev libx11-dev libxrandr-dev libxi-dev xorg-dev libgl1-mesa-dev libglu1-mesa-dev
+sudo apt install gdb
 git clone https://github.com/raysan5/raylib.git raylib
 cd raylib
 mkdir build && cd build
