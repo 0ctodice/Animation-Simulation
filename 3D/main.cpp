@@ -29,7 +29,7 @@ float Fe = 400;
 float g = 0;
 float a = 1;
 float b = 1;
-float w = 1;
+float w = 0;
 float r = 1000000;
 
 bool drawGUI = true;
@@ -195,7 +195,7 @@ OwnVector3 wind()
 {
     double alphaT = cos(2 * PI * GetFrameTime() / (Fe));
     double betaT = cos(2 * PI * 0.5 * GetFrameTime() * (1.0 / Fe));
-    return {-cos(alphaT) * sin(betaT), -sin(alphaT) * cos(betaT), -cos(betaT)};
+    return {cos(alphaT) * sin(betaT), sin(alphaT) * cos(betaT), cos(betaT)};
 }
 
 enum LINKTYPE
@@ -467,7 +467,7 @@ void DrawGUI(PMat *tabM, Link *tabL)
     Fe = GuiSliderBar((Rectangle){screenWidth - 150, 170, 100, 30}, "Fe", std::to_string(Fe).substr(0, std::to_string(Fe).find(".")).c_str(), Fe, 0, 1000);
     a = GuiSliderBar((Rectangle){screenWidth - 150, 210, 100, 30}, "A", std::to_string(a).substr(0, std::to_string(a).find(".") + 3).c_str(), a, 0.5, 1);
     b = GuiSliderBar((Rectangle){screenWidth - 150, 250, 100, 30}, "B", std::to_string(b).substr(0, std::to_string(b).find(".") + 3).c_str(), b, 0.75, 1);
-    w = GuiSliderBar((Rectangle){screenWidth - 150, 290, 100, 30}, "W", std::to_string(w).substr(0, std::to_string(w).find(".")).c_str(), w, 1, 10000);
+    w = GuiSliderBar((Rectangle){screenWidth - 150, 290, 100, 30}, "W", std::to_string(w).substr(0, std::to_string(w).find(".")).c_str(), w, -10000, 10000);
     r = GuiSliderBar((Rectangle){screenWidth - 150, 330, 100, 30}, "R", std::to_string(r).substr(0, std::to_string(r).find(".") + 3).c_str(), r, 0, 100000);
     if (GuiButton((Rectangle){screenWidth - 150, 370, 100, 30}, "RESET"))
     {
