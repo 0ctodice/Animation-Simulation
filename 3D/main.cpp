@@ -1,6 +1,26 @@
+////////////////////////////////////////////////////////////////////////////////////
+//
+// ---------------------------------------------------------------------------------
+//   _____      _            _ _
+//  |  _  |    | |          | (_)
+//  | |/' | ___| |_ ___   __| |_  ___ ___
+//  |  /| |/ __| __/ _ \ / _` | |/ __/ _ \
+//  \ |_/ / (__| || (_) | (_| | | (_|  __/
+//   \___/ \___|\__\___/ \__,_|_|\___\___|
+//
+// ---------------------------------------------------------------------------------
+//
+//  Project for the course "Animation et Simulation" at the University Gustave Eiffel
+//  ~ Thomas DUMONT A.K.A 0ctodice
+//
+// ---------------------------------------------------------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////////
+
 #include <iostream>
 #include <raylib.h>
 #include <raymath.h>
+#include "OwnVector3.hpp"
 
 #define RAYGUI_IMPLEMENTATION
 #include <../GUI/raygui.h>
@@ -11,15 +31,15 @@ using namespace std;
 #define screenWidth 1280
 #define screenHeight 720
 
-#define FLAGWIDTH 25
-#define FLAGHEIGHT 25
+#define FLAGWIDTH 30
+#define FLAGHEIGHT 30
 #define FLAGRES 1
 
 #define NBM FLAGWIDTH *FLAGHEIGHT
 #define NBL FLAGWIDTH *(FLAGHEIGHT - 1) + FLAGHEIGHT *(FLAGWIDTH - 1) + 2 * (FLAGWIDTH - 1) * (FLAGHEIGHT - 1) + (FLAGWIDTH - 2) * FLAGHEIGHT + (FLAGHEIGHT - 2) * FLAGWIDTH
 
-// #define NBM 13
-// #define NBL NBM - 1
+// #define NBM 13       // NOMBRE DE PARTICULES POUR LA CORDE
+// #define NBL NBM - 1  // NOMBRE DE LIENS POUR LA CORDE
 
 #define m 1
 
@@ -31,6 +51,7 @@ float a = 1;
 float b = 1;
 float w = 0;
 float r = 1000000;
+OwnVector3 windDir = {0.0, 0.0, 0.0};
 
 bool drawGUI = true;
 
@@ -45,109 +66,6 @@ void resetParam()
     w = 1;
     r = 1000000;
 }
-
-class OwnVector3
-{
-public:
-    double x, y, z = 0.0;
-
-    OwnVector3(double _x, double _y, double _z)
-    {
-        x = _x;
-        y = _y;
-        z = _z;
-    }
-
-    // surcharge de l'opérateur +
-    OwnVector3 operator+(OwnVector3 const &obj)
-    {
-        OwnVector3 res(x + obj.x, y + obj.y, z + obj.z);
-        return res;
-    }
-
-    // surcharge de l'opérateur -
-    OwnVector3 operator-(OwnVector3 const &obj)
-    {
-        OwnVector3 res(x - obj.x, y - obj.y, z - obj.z);
-        return res;
-    }
-
-    // surcharge de l'opérateur *
-    OwnVector3 operator*(double const &obj)
-    {
-        OwnVector3 res(x * obj, y * obj, z * obj);
-        return res;
-    }
-
-    // surcharge de l'opérateur /
-    OwnVector3 operator/(double const &obj)
-    {
-        OwnVector3 res(x / obj, y / obj, z / obj);
-        return res;
-    }
-
-    // surcharge de l'opérateur =
-    OwnVector3 operator=(OwnVector3 const &obj)
-    {
-        x = obj.x;
-        y = obj.y;
-        z = obj.z;
-        return *this;
-    }
-
-    // surcharge de l'opérateur +=
-    OwnVector3 operator+=(OwnVector3 const &obj)
-    {
-        x += obj.x;
-        y += obj.y;
-        z += obj.z;
-        return *this;
-    }
-
-    // surcharge de l'opérateur -=
-    OwnVector3 operator-=(OwnVector3 const &obj)
-    {
-        x -= obj.x;
-        y -= obj.y;
-        z -= obj.z;
-        return *this;
-    }
-
-    // surcharge de l'opérateur *=
-    OwnVector3 operator*=(double const &obj)
-    {
-        x *= obj;
-        y *= obj;
-        z *= obj;
-        return *this;
-    }
-
-    // surcharge de l'opérateur /=
-    OwnVector3 operator/=(double const &obj)
-    {
-        x /= obj;
-        y /= obj;
-        z /= obj;
-        return *this;
-    }
-
-    // surcharge de l'opérateur ==
-    bool operator==(OwnVector3 const &obj)
-    {
-        return (x == obj.x && y == obj.y && z == obj.z);
-    }
-
-    // surcharge de l'opérateur !=
-    bool operator!=(OwnVector3 const &obj)
-    {
-        return (x != obj.x || y != obj.y || z != obj.z);
-    }
-
-    Vector3 operator!(void)
-    {
-        return {(float)x, (float)y, (float)z};
-    }
-};
 
 class PMat
 {
@@ -257,15 +175,13 @@ public:
             break;
         }
 
-        auto _w = wind();
-
         double ux = delta.x / d;
         double uy = delta.y / d;
         double uz = delta.z / d;
 
-        double fX = K * (d - l0) * ux + Z * (M2->vit.x - M1->vit.x) + _w.x * w;
-        double fY = K * (d - l0) * uy + Z * (M2->vit.y - M1->vit.y) + _w.y * w;
-        double fZ = K * (d - l0) * uz + Z * (M2->vit.z - M1->vit.z) + _w.z * w;
+        double fX = K * (d - l0) * ux + Z * (M2->vit.x - M1->vit.x) + windDir.x * w;
+        double fY = K * (d - l0) * uy + Z * (M2->vit.y - M1->vit.y) + windDir.y * w;
+        double fZ = K * (d - l0) * uz + Z * (M2->vit.z - M1->vit.z) + windDir.z * w;
 
         double totalFrc = sqrt(fX * fX + fY * fY + fZ * fZ);
 
@@ -468,7 +384,7 @@ void DrawGUI(PMat *tabM, Link *tabL)
     a = GuiSliderBar((Rectangle){screenWidth - 150, 210, 100, 30}, "A", std::to_string(a).substr(0, std::to_string(a).find(".") + 3).c_str(), a, 0.5, 1);
     b = GuiSliderBar((Rectangle){screenWidth - 150, 250, 100, 30}, "B", std::to_string(b).substr(0, std::to_string(b).find(".") + 3).c_str(), b, 0.75, 1);
     w = GuiSliderBar((Rectangle){screenWidth - 150, 290, 100, 30}, "W", std::to_string(w).substr(0, std::to_string(w).find(".")).c_str(), w, -10000, 10000);
-    r = GuiSliderBar((Rectangle){screenWidth - 150, 330, 100, 30}, "R", std::to_string(r).substr(0, std::to_string(r).find(".") + 3).c_str(), r, 0, 100000);
+    r = GuiSliderBar((Rectangle){screenWidth - 150, 330, 100, 30}, "R", std::to_string(r).substr(0, std::to_string(r).find(".")).c_str(), r, 0, 100000);
     if (GuiButton((Rectangle){screenWidth - 150, 370, 100, 30}, "RESET"))
     {
         resetParam();
@@ -495,7 +411,6 @@ int main()
     SetTargetFPS(120);
 
     Drapeau3DModeleur(tabM, tabL);
-    // CordeModeleur(tabM, tabL);
 
     Camera camera = {0};
     camera.position = (Vector3){0.0f, 0.0f, 100.0f};
@@ -506,12 +421,12 @@ int main()
 
     while (WindowShouldClose() == false)
     {
+        windDir = wind();
         MoteurRessortFrein(tabM, tabL);
         BeginDrawing();
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
 
         BeginMode3D(camera);
-
         UpdateCameraPro(&camera, {GetMouseWheelMove(), 0, 0}, {0, 0, 0}, 0);
 
         for (Link *L = tabL; L < tabL + NBL; L++)
@@ -527,6 +442,11 @@ int main()
         {
             DrawGUI(tabM, tabL);
             DrawFPS(10, 10);
+        }
+
+        if (IsKeyPressed(KEY_F))
+        {
+            ToggleFullscreen();
         }
 
         EndDrawing();
