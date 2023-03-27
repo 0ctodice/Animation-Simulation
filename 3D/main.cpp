@@ -51,6 +51,9 @@ float a = 1;
 float b = 1;
 float w = 0;
 float r = 1000000;
+float wx = 0;
+float wy = 0;
+float wz = 0;
 OwnVector3 windDir = {0.0, 0.0, 0.0};
 
 bool drawGUI = true;
@@ -63,8 +66,18 @@ void resetParam()
     Fe = 400;
     a = 1;
     b = 1;
-    w = 1;
+    w = 0;
     r = 1000000;
+    wx = 0;
+    wy = 0;
+    wz = 0;
+}
+
+OwnVector3 wind()
+{
+    double alphaT = cos(2 * PI * GetFrameTime() / (Fe));
+    double betaT = cos(2 * PI * 0.5 * GetFrameTime() * (1.0 / Fe));
+    return {cos(alphaT) * sin(betaT), sin(alphaT) * cos(betaT), cos(betaT)};
 }
 
 class PMat
@@ -108,13 +121,6 @@ public:
         DrawSphereEx(!pos, 1, 10, 10, color);
     }
 };
-
-OwnVector3 wind()
-{
-    double alphaT = cos(2 * PI * GetFrameTime() / (Fe));
-    double betaT = cos(2 * PI * 0.5 * GetFrameTime() * (1.0 / Fe));
-    return {cos(alphaT) * sin(betaT), sin(alphaT) * cos(betaT), cos(betaT)};
-}
 
 enum LINKTYPE
 {
@@ -385,7 +391,10 @@ void DrawGUI(PMat *tabM, Link *tabL)
     b = GuiSliderBar((Rectangle){screenWidth - 150, 250, 100, 30}, "B", std::to_string(b).substr(0, std::to_string(b).find(".") + 3).c_str(), b, 0.75, 1);
     w = GuiSliderBar((Rectangle){screenWidth - 150, 290, 100, 30}, "W", std::to_string(w).substr(0, std::to_string(w).find(".")).c_str(), w, -10000, 10000);
     r = GuiSliderBar((Rectangle){screenWidth - 150, 330, 100, 30}, "R", std::to_string(r).substr(0, std::to_string(r).find(".")).c_str(), r, 0, 100000);
-    if (GuiButton((Rectangle){screenWidth - 150, 370, 100, 30}, "RESET"))
+    wx = GuiSliderBar((Rectangle){screenWidth - 150, 370, 100, 30}, "WX", std::to_string(wx).substr(0, std::to_string(wx).find(".") + 3).c_str(), wx, -1, 1);
+    wy = GuiSliderBar((Rectangle){screenWidth - 150, 410, 100, 30}, "WY", std::to_string(wy).substr(0, std::to_string(wy).find(".") + 3).c_str(), wy, -1, 1);
+    wz = GuiSliderBar((Rectangle){screenWidth - 150, 450, 100, 30}, "WZ", std::to_string(wz).substr(0, std::to_string(wz).find(".") + 3).c_str(), wz, -1, 1);
+    if (GuiButton((Rectangle){screenWidth - 150, 490, 100, 30}, "RESET"))
     {
         resetParam();
 
@@ -421,7 +430,8 @@ int main()
 
     while (WindowShouldClose() == false)
     {
-        windDir = wind();
+        windDir = {wx, wy, wz};
+        windDir = windDir.normalized();
         MoteurRessortFrein(tabM, tabL);
         BeginDrawing();
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
