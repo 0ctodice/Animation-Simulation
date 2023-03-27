@@ -128,6 +128,8 @@ public:
     OwnVector3 normalized()
     {
         double norm = sqrt(x * x + y * y + z * z);
-        return {x / norm, y / norm, z / norm};
+        if (norm == 0.0)
+            return {0.0, 0.0, 0.0};
+        return {(double)(x / norm), y / norm, z / norm};
     }
 };
