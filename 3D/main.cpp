@@ -21,6 +21,8 @@
 #include <raylib.h>
 #include <raymath.h>
 #include "OwnVector3.hpp"
+#include <vector>
+#include <algorithm>
 
 #define RAYGUI_IMPLEMENTATION
 #include <../GUI/raygui.h>
@@ -55,6 +57,7 @@ float wx = 0;
 float wy = 0;
 float wz = 0;
 OwnVector3 windDir = {0.0, 0.0, 0.0};
+vector<OwnVector3> collisions{NBM};
 
 bool drawGUI = true;
 
@@ -87,6 +90,7 @@ public:
     OwnVector3 iniPos{0.0, 0.0, 0.0};
     OwnVector3 vit{0.0, 0.0, 0.0};
     OwnVector3 frc{0.0, 0.0, 0.0};
+    float coef = 1.0;
     Color color = BLACK;
     bool fixed = true;
     bool exist = true;
@@ -98,7 +102,7 @@ public:
 
     void setup(double h)
     {
-        vit += (frc / m) * h;
+        vit += (frc * coef / m) * h;
         pos += vit * h;
         frc = {0.0, 0.0, 0.0};
     }
@@ -281,6 +285,8 @@ void Drapeau3DModeleur(PMat *tabM, Link *tabL)
             M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_PRESSED));
             M->fixed = false;
             M->initPos();
+            M->coef = max(1.0 - ((float)i / (float)FLAGWIDTH), 0.1);
+            std::cout << M->coef << std::endl;
         }
     }
 
