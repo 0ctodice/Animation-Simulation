@@ -21,7 +21,7 @@
 
 # Animation-Simulation
 
-## Installation
+## Installation & Compilation
 
 ### Prérequis :
 
@@ -55,3 +55,19 @@ sudo make install
 - Allez dans une des dossier selon le niveau de dimensions (La simulation du drapeau est le projet 3D).
 - Ouvrez le dossier dans visual studio code, en mode workspace.
 - Appuyez sur F5 et ammusez-vous !
+
+# Ce qui fonctionne :
+
+Le drapeau est modélisé correctement avec les 3 maillages (Structurel, Torsion et Courbure).
+on peut :
+ - appliquer de la gravité.
+ - orienter le vents dans les 3 axes.
+ - appliquer une force de vent commune aux 3 axes.
+ - régler le niveau de résistance du drapeau (il peut donc se déchirer).
+ - afin d'éviter l'effet "super-élastique", on a ajouter un coefficient réducteur qui vaut 100% au niveau du mât et minimum 10% à l'extrémité du drapeau.
+ - On peut réinitialiser la simulation à tout moment.
+
+# Les pistes que je voulais explorer :
+
+- Ajouter la gestion des collisions avec des objets.
+- Ajouter un visuel pour le drapeau (texture, couleur, etc...)
