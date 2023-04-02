@@ -57,7 +57,6 @@ float wx = 0;
 float wy = 0;
 float wz = 0;
 OwnVector3 windDir = {0.0, 0.0, 0.0};
-vector<OwnVector3> collisions{NBM};
 
 bool drawGUI = true;
 
@@ -76,12 +75,12 @@ void resetParam()
     wz = 0;
 }
 
-OwnVector3 wind()
-{
-    double alphaT = cos(2 * PI * GetFrameTime() / (Fe));
-    double betaT = cos(2 * PI * 0.5 * GetFrameTime() * (1.0 / Fe));
-    return {cos(alphaT) * sin(betaT), sin(alphaT) * cos(betaT), cos(betaT)};
-}
+// OwnVector3 wind()
+// {
+//     double alphaT = cos(2 * PI * GetFrameTime() / (Fe));
+//     double betaT = cos(2 * PI * 0.5 * GetFrameTime() * (1.0 / Fe));
+//     return {cos(alphaT) * sin(betaT), sin(alphaT) * cos(betaT), cos(betaT)};
+// }
 
 class PMat
 {
@@ -102,7 +101,7 @@ public:
 
     void setup(double h)
     {
-        vit += (frc * coef / m) * h;
+        vit += (frc / m) * h * coef;
         pos += vit * h;
         frc = {0.0, 0.0, 0.0};
     }
@@ -286,7 +285,6 @@ void Drapeau3DModeleur(PMat *tabM, Link *tabL)
             M->fixed = false;
             M->initPos();
             M->coef = max(1.0 - ((float)i / (float)FLAGWIDTH), 0.1);
-            std::cout << M->coef << std::endl;
         }
     }
 
@@ -395,7 +393,7 @@ void DrawGUI(PMat *tabM, Link *tabL)
     Fe = GuiSliderBar((Rectangle){screenWidth - 150, 170, 100, 30}, "Fe", std::to_string(Fe).substr(0, std::to_string(Fe).find(".")).c_str(), Fe, 0, 1000);
     a = GuiSliderBar((Rectangle){screenWidth - 150, 210, 100, 30}, "A", std::to_string(a).substr(0, std::to_string(a).find(".") + 3).c_str(), a, 0.5, 1);
     b = GuiSliderBar((Rectangle){screenWidth - 150, 250, 100, 30}, "B", std::to_string(b).substr(0, std::to_string(b).find(".") + 3).c_str(), b, 0.75, 1);
-    w = GuiSliderBar((Rectangle){screenWidth - 150, 290, 100, 30}, "W", std::to_string(w).substr(0, std::to_string(w).find(".")).c_str(), w, -10000, 10000);
+    w = GuiSliderBar((Rectangle){screenWidth - 150, 290, 100, 30}, "W", std::to_string(w).substr(0, std::to_string(w).find(".")).c_str(), w, 0, 10000);
     r = GuiSliderBar((Rectangle){screenWidth - 150, 330, 100, 30}, "R", std::to_string(r).substr(0, std::to_string(r).find(".")).c_str(), r, 0, 100000);
     wx = GuiSliderBar((Rectangle){screenWidth - 150, 370, 100, 30}, "WX", std::to_string(wx).substr(0, std::to_string(wx).find(".") + 3).c_str(), wx, -1, 1);
     wy = GuiSliderBar((Rectangle){screenWidth - 150, 410, 100, 30}, "WY", std::to_string(wy).substr(0, std::to_string(wy).find(".") + 3).c_str(), wy, -1, 1);
