@@ -66,6 +66,11 @@ on peut :
  - régler le niveau de résistance du drapeau (il peut donc se déchirer).
  - afin d'éviter l'effet "super-élastique", on a ajouter un coefficient réducteur qui vaut 100% au niveau du mât et minimum 10% à l'extrémité du drapeau.
  - On peut réinitialiser la simulation à tout moment.
+ - Tout les paramètres sont modifiable via l'UI.
+ - De plus vous pouvez :
+   -  appuyer sur G pour cacher l'UI, et G à nouveau pour la réafficher.
+   -  appuyer sur F pour passer en mode plein écran.
+   -  Zoomer et dézoomer avec la molette de la souris.
 
 # Les pistes que je voulais explorer :
 

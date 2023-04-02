@@ -40,9 +40,6 @@ using namespace std;
 #define NBM FLAGWIDTH *FLAGHEIGHT
 #define NBL FLAGWIDTH *(FLAGHEIGHT - 1) + FLAGHEIGHT *(FLAGWIDTH - 1) + 2 * (FLAGWIDTH - 1) * (FLAGHEIGHT - 1) + (FLAGWIDTH - 2) * FLAGHEIGHT + (FLAGHEIGHT - 2) * FLAGWIDTH
 
-// #define NBM 13       // NOMBRE DE PARTICULES POUR LA CORDE
-// #define NBL NBM - 1  // NOMBRE DE LIENS POUR LA CORDE
-
 #define m 1
 
 float k = 0.1;
@@ -221,46 +218,6 @@ public:
             DrawLine3D(!(M1->pos), !(M2->pos), GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED)));
     }
 };
-
-void CordeModeleur(PMat *tabM, Link *tabL)
-{
-    PMat *M = tabM;
-
-    M->pos.x = (-NBM / 2) * 10.0;
-    M->pos.y = 0.0;
-    M->pos.z = 0.0;
-    M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED));
-    M->initPos();
-
-    M++;
-
-    for (int i = (-NBM / 2) + 1; i < NBM / 2; i++)
-    {
-        M->pos.x = i * 10.0;
-        M->pos.y = 0.0;
-        M->pos.z = 0.0;
-        M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_PRESSED));
-        M->fixed = false;
-        M->initPos();
-        M++;
-    }
-
-    M->pos.x = (NBM / 2) * 10.0;
-    M->pos.y = 0.0;
-    M->pos.z = 0.0;
-    M->color = GetColor(GuiGetStyle(BUTTON, BASE_COLOR_FOCUSED));
-    M->initPos();
-
-    M = tabM;
-
-    for (Link *L = tabL; L < tabL + NBL; L++)
-    {
-        L->connect(M, M + 1);
-        M++;
-    }
-
-    delete M;
-}
 
 void Drapeau3DModeleur(PMat *tabM, Link *tabL)
 {
